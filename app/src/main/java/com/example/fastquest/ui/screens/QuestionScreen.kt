@@ -318,5 +318,3 @@ fun QuestionScreenPreview() {
         QuestionScreen()
     }
 }
-
-// Made with Bob

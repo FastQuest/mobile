@@ -47,5 +47,3 @@ val TagRed = Color(0xFFA85858)
 val TagBlue = Color(0xFF3D5A7A)
 val TagOrange = Color(0xFFE8B44C)
 val TagBrown = Color(0xFF8B6F47)
-
-// Made with Bob

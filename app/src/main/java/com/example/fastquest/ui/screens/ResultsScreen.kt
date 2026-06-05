@@ -255,5 +255,3 @@ fun ResultsScreenPreview() {
         ResultsScreen()
     }
 }
-
-// Made with Bob

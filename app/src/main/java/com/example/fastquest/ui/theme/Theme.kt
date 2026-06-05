@@ -59,5 +59,3 @@ fun FastQuestTheme(
         content = content
     )
 }
-
-// Made with Bob

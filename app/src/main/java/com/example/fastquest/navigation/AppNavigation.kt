@@ -1,4 +1,3 @@
-// Navigation setup connecting all screens in the FastQuest app
 package com.example.fastquest.navigation
 
 import androidx.compose.runtime.Composable
@@ -166,5 +165,3 @@ fun AppNavigation(
         }
     }
 }
-
-// Made with Bob

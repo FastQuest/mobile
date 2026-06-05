@@ -25,5 +25,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-// Made with Bob

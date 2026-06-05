@@ -260,5 +260,3 @@ fun FolderDetailsScreenPreview() {
         FolderDetailsScreen()
     }
 }
-
-// Made with Bob

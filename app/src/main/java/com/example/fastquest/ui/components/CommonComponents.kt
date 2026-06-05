@@ -1,4 +1,3 @@
-// Common reusable UI components for FastQuest app
 package com.example.fastquest.ui.components
 
 import androidx.compose.foundation.background
@@ -315,5 +314,3 @@ fun FilterChip(
         }
     }
 }
-
-// Made with Bob

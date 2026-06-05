@@ -152,5 +152,3 @@ fun Screen1Preview() {
         Screen1()
     }
 }
-
-// Made with Bob
