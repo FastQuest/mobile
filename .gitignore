@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+API_QUICK_REFERENCE.md
+ARCHITECTURE_DIAGRAM.md
+INTEGRATION_PLAN.md
+swagger.json

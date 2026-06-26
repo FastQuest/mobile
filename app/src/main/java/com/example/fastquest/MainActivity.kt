@@ -7,12 +7,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.example.fastquest.data.network.ApiClient
 import com.example.fastquest.navigation.AppNavigation
 import com.example.fastquest.ui.theme.FastQuestTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize API client
+        ApiClient.initialize(applicationContext)
+        
         enableEdgeToEdge()
         setContent {
             FastQuestTheme {
