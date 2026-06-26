@@ -21,12 +21,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.fastquest.data.local.TokenManager
+import com.example.fastquest.data.network.ApiClient
+import com.example.fastquest.data.repository.QuestionsRepository
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
+import com.example.fastquest.viewmodel.QuestionViewModel
+import com.example.fastquest.viewmodel.QuestionViewModelFactory
+import kotlinx.coroutines.delay
 
 data class QuestionOption(
     val id: String,
@@ -35,225 +43,277 @@ data class QuestionOption(
 
 @Composable
 fun QuestionScreen(
-    questionNumber: String = "#3536562563",
-    questionText: String = "",
-    options: List<QuestionOption> = emptyList(),
+    questionId: String,
     onBackClick: () -> Unit = {},
     onInfoClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
-    onConfirmClick: () -> Unit = {},
-    onPlayClick: () -> Unit = {},
-    onPauseClick: () -> Unit = {},
-    onResetClick: () -> Unit = {}
+    onAnswerSubmitted: () -> Unit = {}
 ) {
-    var selectedOption by remember { mutableStateOf<String?>(null) }
-    var timerText by remember { mutableStateOf("00 : 00 : 00") }
-    var isPlaying by remember { mutableStateOf(false) }
-
-    val defaultQuestionText = "Soraya integrava o contrato social de uma sociedade empresária, mas se afastou dela em 2019 e registrou sua saída perante a Junta Comercial em dezembro de 2021. Joana foi empregada da sociedade empresária em questão de abril de 2019 a setembro de 2020, tendo sido dispensada sem justa causa. Obteve vitória judicial e iniciou a execução em janeiro de 2025.\n\nNão tendo a sociedade empresária solvabilidade, requereu o direcionamento da execução contra os sócios atuais, sem êxito. Então, requereu que a execução fosse feita em relação à Soraya. Considerando esses fatos e o que prevê a CLT, assinale a afirmativa correta."
-
-    val defaultOptions = listOf(
-        QuestionOption("A", "É possível a execução de Soraya porque, entre a averbação de sua saída e o ajuizamento da ação, transcorreu prazo inferior a 2 anos."),
-        QuestionOption("B", "É possível a execução de Soraya porque, entre a averbação de sua saída e o ajuizamento da ação, transcorreu prazo inferior a 2 anos."),
-        QuestionOption("C", "É possível a execução de Soraya porque, entre a averbação de sua saída e o ajuizamento da ação, transcorreu prazo inferior a 2 anos."),
-        QuestionOption("D", "É possível a execução de Soraya porque, entre a averbação de sua saída e o ajuizamento da ação, transcorreu prazo inferior a 2 anos.")
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+    val questionsRepository = remember {
+        QuestionsRepository(ApiClient.questionsService, tokenManager)
+    }
+    val viewModel: QuestionViewModel = viewModel(
+        factory = QuestionViewModelFactory(questionsRepository)
     )
-
-    val displayQuestionText = questionText.ifEmpty { defaultQuestionText }
-    val displayOptions = options.ifEmpty { defaultOptions }
+    
+    val questionState by viewModel.questionState.collectAsState()
+    val selectedOptionId by viewModel.selectedOptionId.collectAsState()
+    val timerSeconds by viewModel.timerSeconds.collectAsState()
+    val isTimerRunning by viewModel.isTimerRunning.collectAsState()
+    
+    // Load question on first composition
+    LaunchedEffect(questionId) {
+        viewModel.loadQuestion(questionId)
+    }
+    
+    // Timer effect
+    LaunchedEffect(isTimerRunning) {
+        while (isTimerRunning) {
+            delay(1000)
+            viewModel.incrementTimer()
+        }
+    }
+    
+    // Navigate on successful answer submission
+    LaunchedEffect(questionState.answerSubmitted) {
+        if (questionState.answerSubmitted) {
+            onAnswerSubmitted()
+        }
+    }
+    
+    // Format timer text
+    val hours = timerSeconds / 3600
+    val minutes = (timerSeconds % 3600) / 60
+    val seconds = timerSeconds % 60
+    val timerText = String.format("%02d : %02d : %02d", hours, minutes, seconds)
+    
+    // Map API options to UI options
+    val displayOptions = questionState.options.map { option ->
+        QuestionOption(
+            id = option.id,
+            text = option.text
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(QuestionBackgroundRed)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.Black, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = TextPrimary
-                    )
-                }
-
-                Text(
-                    text = "Questão $questionNumber",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+        when {
+            questionState.isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
                     color = TextPrimary
                 )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(
-                        onClick = onInfoClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(TextFieldBackground, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "Informações",
-                            tint = Color.Black
-                        )
-                    }
-
-                    IconButton(
-                        onClick = onMenuClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(TextFieldBackground, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = Color.Black
-                        )
+            }
+            questionState.error != null -> {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = questionState.error ?: "Erro ao carregar questão",
+                        color = TextPrimary,
+                        fontSize = 14.sp
+                    )
+                    Button(onClick = { viewModel.loadQuestion(questionId) }) {
+                        Text("Tentar novamente")
                     }
                 }
             }
-
-            // Timer section
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(28.dp),
-                color = TextFieldBackground
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            questionState.question != null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Text(
-                        text = timerText,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Top bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         IconButton(
-                            onClick = {
-                                isPlaying = false
-                                onPauseClick()
-                            },
-                            modifier = Modifier.size(32.dp)
+                            onClick = onBackClick,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(Color.Black, CircleShape)
                         ) {
-                            Box(
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Voltar",
+                                tint = TextPrimary
+                            )
+                        }
+
+                        Text(
+                            text = "Questão #${questionState.question?.id?.take(8) ?: ""}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            IconButton(
+                                onClick = onInfoClick,
                                 modifier = Modifier
-                                    .size(16.dp)
-                                    .background(ButtonRed, RoundedCornerShape(2.dp))
+                                    .size(40.dp)
+                                    .background(TextFieldBackground, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = "Informações",
+                                    tint = Color.Black
+                                )
+                            }
+
+                            IconButton(
+                                onClick = onMenuClick,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(TextFieldBackground, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Menu",
+                                    tint = Color.Black
+                                )
+                            }
+                        }
+                    }
+
+                    // Timer section
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(28.dp),
+                        color = TextFieldBackground
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = timerText,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                IconButton(
+                                    onClick = { viewModel.pauseTimer() },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .background(ButtonRed, RoundedCornerShape(2.dp))
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.startTimer() },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "Play",
+                                        tint = Color.Black
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.resetTimer() },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Reset",
+                                        tint = Color.Black
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Question and options
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Question text
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = CardBackground
+                        ) {
+                            Text(
+                                text = questionState.question?.text ?: "",
+                                fontSize = 14.sp,
+                                color = TextDark,
+                                lineHeight = 20.sp,
+                                modifier = Modifier.padding(16.dp)
                             )
                         }
 
-                        IconButton(
-                            onClick = {
-                                isPlaying = true
-                                onPlayClick()
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play",
-                                tint = Color.Black
+                        // Options
+                        displayOptions.forEach { option ->
+                            QuestionOptionItem(
+                                option = option,
+                                isSelected = selectedOptionId == option.id,
+                                onClick = { viewModel.selectOption(option.id) }
                             )
                         }
 
-                        IconButton(
-                            onClick = {
-                                timerText = "00 : 00 : 00"
-                                isPlaying = false
-                                onResetClick()
-                            },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Reset",
-                                tint = Color.Black
-                            )
-                        }
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
+                }
+
+                // Confirm button
+                Button(
+                    onClick = { viewModel.submitAnswer() },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(16.dp)
+                        .width(280.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = TextPrimary
+                    ),
+                    enabled = selectedOptionId != null && !questionState.isSubmitting
+                ) {
+                    if (questionState.isSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = TextPrimary
+                        )
+                    } else {
+                        Text(
+                            text = "CONFIRMAR",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Question and options
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Question text
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBackground
-                ) {
-                    Text(
-                        text = displayQuestionText,
-                        fontSize = 14.sp,
-                        color = TextDark,
-                        lineHeight = 20.sp,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-
-                // Options
-                displayOptions.forEach { option ->
-                    QuestionOptionItem(
-                        option = option,
-                        isSelected = selectedOption == option.id,
-                        onClick = { selectedOption = option.id }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(80.dp))
-            }
-        }
-
-        // Confirm button
-        Button(
-            onClick = onConfirmClick,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-                .width(280.dp)
-                .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black,
-                contentColor = TextPrimary
-            ),
-            enabled = selectedOption != null
-        ) {
-            Text(
-                text = "CONFIRMAR",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
-            )
         }
     }
 }
@@ -315,6 +375,6 @@ fun QuestionOptionItem(
 @Composable
 fun QuestionScreenPreview() {
     FastQuestTheme {
-        QuestionScreen()
+        QuestionScreen(questionId = "preview-id")
     }
 }

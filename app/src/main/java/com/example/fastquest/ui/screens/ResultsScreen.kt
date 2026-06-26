@@ -15,19 +15,47 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.fastquest.data.local.TokenManager
+import com.example.fastquest.data.network.ApiClient
+import com.example.fastquest.data.repository.SubmissionsRepository
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
+import com.example.fastquest.viewmodel.ResultsViewModel
+import com.example.fastquest.viewmodel.ResultsViewModelFactory
 
 @Composable
 fun ResultsScreen(
+    userId: String? = null,
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+    val submissionsRepository = remember {
+        SubmissionsRepository(
+            ApiClient.submissionsService,
+            ApiClient.answersService,
+            tokenManager
+        )
+    }
+    val viewModel: ResultsViewModel = viewModel(
+        factory = ResultsViewModelFactory(submissionsRepository)
+    )
+    
+    val performanceState by viewModel.performanceState.collectAsState()
+    
+    // Load performance data on first composition
+    LaunchedEffect(userId) {
+        viewModel.loadPerformance(userId)
+    }
+    
     val titleText = "SEUS RESULTADOS"
     val subtitleText = "Tudo sobre o seu desempenho"
 
@@ -36,202 +64,302 @@ fun ResultsScreen(
             .fillMaxSize()
             .background(ResultsBackgroundBlue)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.Black, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Voltar",
-                        tint = TextPrimary
-                    )
-                }
-
-                IconButton(
-                    onClick = onMenuClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(TextFieldBackground, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Menu,
-                        contentDescription = "Menu",
-                        tint = Color.Black
-                    )
-                }
-            }
-
-            // Logo
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                FastQuestLogo()
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = titleText,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    letterSpacing = 1.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = subtitleText,
-                    fontSize = 14.sp,
+        when {
+            performanceState.isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
                     color = TextPrimary
                 )
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            // Charts section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Large chart placeholder
-                Surface(
+            performanceState.error != null -> {
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBackground
+                        .align(Alignment.Center)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "ALGUM\nGRÁFICO\nAQUI TO\nSEM\nIDEIAS",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 24.sp
-                        )
+                    Text(
+                        text = performanceState.error ?: "Erro ao carregar resultados",
+                        color = TextPrimary,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Button(onClick = { viewModel.loadPerformance(userId) }) {
+                        Text("Tentar novamente")
                     }
                 }
-
-                // Two smaller charts row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+            }
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    // Bar chart placeholder
-                    Surface(
+                    // Top bar
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(180.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = CardBackground
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
+                        IconButton(
+                            onClick = onBackClick,
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                                .size(40.dp)
+                                .background(Color.Black, CircleShape)
                         ) {
-                            // Simple bar chart representation
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                ChartBar(height = 80.dp, color = CardYellow)
-                                ChartBar(height = 60.dp, color = CardOrange)
-                                ChartBar(height = 50.dp, color = ButtonDarkBlue)
-                                ChartBar(height = 70.dp, color = CardRed)
-                                ChartBar(height = 55.dp, color = ButtonDarkBlue)
-                            }
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Voltar",
+                                tint = TextPrimary
+                            )
                         }
-                    }
 
-                    // Text placeholder
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(180.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        color = CardBackground
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                        IconButton(
+                            onClick = onMenuClick,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(TextFieldBackground, CircleShape)
                         ) {
-                            Text(
-                                text = "ALGUM\nGRÁFICO\nAQUI TO\nSEM\nIDEIAS",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 22.sp
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menu",
+                                tint = Color.Black
                             )
                         }
                     }
-                }
 
-                // Pie chart placeholder
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = CardBackground
-                ) {
-                    Row(
+                    // Logo
+                    Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Simple pie chart representation using a circle
-                        Box(
-                            modifier = Modifier
-                                .size(120.dp)
-                                .background(
-                                    brush = androidx.compose.ui.graphics.Brush.sweepGradient(
-                                        listOf(
-                                            CardRed,
-                                            CardOrange,
-                                            CardYellow,
-                                            ButtonDarkBlue
-                                        )
-                                    ),
-                                    shape = CircleShape
-                                )
+                        FastQuestLogo()
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Text(
+                            text = titleText,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            letterSpacing = 1.sp
                         )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = subtitleText,
+                            fontSize = 14.sp,
+                            color = TextPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
+
+                    // Performance metrics
+                    val metrics = performanceState.performance
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Overall statistics card
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = CardBackground
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                Text(
+                                    text = "Estatísticas Gerais",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDark
+                                )
+                                
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    StatItem("Total", "${metrics?.totalQuestions ?: 0}")
+                                    StatItem("Corretas", "${metrics?.correctAnswers ?: 0}")
+                                    StatItem("Incorretas", "${metrics?.incorrectAnswers ?: 0}")
+                                }
+                                
+                                Text(
+                                    text = "Taxa de Acerto: ${String.format("%.1f", metrics?.accuracyRate ?: 0.0)}%",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = ButtonDarkBlue
+                                )
+                            }
+                        }
+
+                        // Two smaller cards row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Average time card
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(180.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                color = CardBackground
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Tempo Médio",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "${metrics?.averageTimePerQuestion ?: 0}s",
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ButtonDarkBlue
+                                    )
+                                    Text(
+                                        text = "por questão",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+
+                            // Submissions card
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(180.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                color = CardBackground
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Submissões",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "${performanceState.submissions.size}",
+                                        fontSize = 32.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = CardOrange
+                                    )
+                                    Text(
+                                        text = "realizadas",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                        }
+
+                        // Performance by category (if available)
+                        if (!metrics?.categoryPerformance.isNullOrEmpty()) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                color = CardBackground
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Desempenho por Categoria",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextDark
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    
+                                    metrics?.categoryPerformance?.take(5)?.forEach { (category, performance) ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = category,
+                                                fontSize = 14.sp,
+                                                color = TextDark,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Text(
+                                                text = "${String.format("%.1f", performance)}%",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = ButtonDarkBlue
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
+}
+
+@Composable
+fun StatItem(label: String, value: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = ButtonDarkBlue
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = Color.Gray
+        )
     }
 }
 

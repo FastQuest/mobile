@@ -18,12 +18,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.fastquest.data.local.TokenManager
+import com.example.fastquest.data.network.ApiClient
+import com.example.fastquest.data.repository.QuestionSetsRepository
+import com.example.fastquest.data.repository.QuestionsRepository
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
+import com.example.fastquest.viewmodel.HomeViewModel
+import com.example.fastquest.viewmodel.HomeViewModelFactory
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class FolderItem(
     val id: String,
@@ -51,25 +61,66 @@ fun HomeScreen(
     onFilterClick: () -> Unit = {},
     onCreateClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val tokenManager = remember { TokenManager(context) }
+    val questionSetsRepository = remember {
+        QuestionSetsRepository(ApiClient.questionSetsService, tokenManager)
+    }
+    val questionsRepository = remember {
+        QuestionsRepository(ApiClient.questionsService, tokenManager)
+    }
+    val viewModel: HomeViewModel = viewModel(
+        factory = HomeViewModelFactory(questionSetsRepository, questionsRepository)
+    )
+    
+    val questionSetsState by viewModel.questionSetsState.collectAsState()
+    val questionsState by viewModel.questionsState.collectAsState()
+    
     var searchText by remember { mutableStateOf("") }
     var isSearchingFolders by remember { mutableStateOf(showFolders) }
-
-    // Sample data
-    val folders = remember {
-        listOf(
-            FolderItem("1", "Título", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação...", CardYellow),
-            FolderItem("2", "Título", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação...", CardOrange),
-            FolderItem("3", "Título", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação...", CardBlue),
-            FolderItem("4", "Título", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação...", CardRed)
+    
+    // Load data on first composition
+    LaunchedEffect(Unit) {
+        viewModel.loadQuestionSets()
+        viewModel.loadQuestions()
+    }
+    
+    // Reload when switching between folders and questions
+    LaunchedEffect(isSearchingFolders) {
+        if (isSearchingFolders) {
+            viewModel.loadQuestionSets()
+        } else {
+            viewModel.loadQuestions()
+        }
+    }
+    
+    // Map API data to UI models
+    val folders = questionSetsState.questionSets.map { questionSet ->
+        val colors = listOf(CardYellow, CardOrange, CardBlue, CardRed)
+        FolderItem(
+            id = questionSet.id,
+            title = questionSet.title,
+            description = questionSet.description ?: "Sem descrição",
+            color = colors[questionSet.id.hashCode() % colors.size]
         )
     }
-
-    val questions = remember {
-        listOf(
-            QuestionItem("1", "Joãozinho123", "Perguntas Tribut...", "OAB", "2024", "Penal", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação..."),
-            QuestionItem("2", "Joãozinho123", "Perguntas Tribut...", "OAB", "2024", "Penal", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação..."),
-            QuestionItem("3", "Joãozinho123", "Perguntas Tribut...", "OAB", "2024", "Penal", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação..."),
-            QuestionItem("4", "Joãozinho123", "Perguntas Tribut...", "OAB", "2024", "Penal", "Esta lista contém uma série de questões fundamentais e de aprofundamento sobre o direito criminal, abordando desde conceitos básicos até tópicos mais complexos relacionados à legislação...")
+    
+    val questions = questionsState.questions.map { question ->
+        val dateFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+        val year = try {
+            dateFormat.format(Date(question.createdAt.toLongOrNull() ?: 0))
+        } catch (e: Exception) {
+            "N/A"
+        }
+        
+        QuestionItem(
+            id = question.id,
+            creator = question.createdBy ?: "Desconhecido",
+            list = question.questionSetId ?: "N/A",
+            source = question.source ?: "N/A",
+            date = year,
+            discipline = question.tags?.firstOrNull() ?: "Geral",
+            description = question.text
         )
     }
 
@@ -158,84 +209,186 @@ fun HomeScreen(
             }
 
             // Content list
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 16.dp)
             ) {
-                if (isSearchingFolders) {
-                    items(folders) { folder ->
-                        FolderCard(
-                            folder = folder,
-                            onClick = { onFolderClick(folder.id) }
+                when {
+                    isSearchingFolders && questionSetsState.isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = TextPrimary
                         )
                     }
-                } else {
-                    items(questions) { question ->
-                        QuestionCard(
-                            question = question,
-                            onClick = { onQuestionClick(question.id) }
+                    !isSearchingFolders && questionsState.isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = TextPrimary
                         )
                     }
-                }
+                    isSearchingFolders && questionSetsState.error != null -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = questionSetsState.error ?: "Erro ao carregar pastas",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp
+                            )
+                            Button(onClick = { viewModel.loadQuestionSets() }) {
+                                Text("Tentar novamente")
+                            }
+                        }
+                    }
+                    !isSearchingFolders && questionsState.error != null -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = questionsState.error ?: "Erro ao carregar perguntas",
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 14.sp
+                            )
+                            Button(onClick = { viewModel.loadQuestions() }) {
+                                Text("Tentar novamente")
+                            }
+                        }
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (isSearchingFolders) {
+                                if (folders.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "Nenhuma pasta encontrada",
+                                            color = TextSecondary,
+                                            modifier = Modifier.padding(16.dp)
+                                        )
+                                    }
+                                } else {
+                                    items(folders) { folder ->
+                                        FolderCard(
+                                            folder = folder,
+                                            onClick = { onFolderClick(folder.id) }
+                                        )
+                                    }
+                                }
+                            } else {
+                                if (questions.isEmpty()) {
+                                    item {
+                                        Text(
+                                            text = "Nenhuma pergunta encontrada",
+                                            color = TextSecondary,
+                                            modifier = Modifier.padding(16.dp)
+                                        )
+                                    }
+                                } else {
+                                    items(questions) { question ->
+                                        QuestionCard(
+                                            question = question,
+                                            onClick = { onQuestionClick(question.id) }
+                                        )
+                                    }
+                                }
+                            }
 
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                            item {
+                                Spacer(modifier = Modifier.height(80.dp))
+                            }
+                        }
+                    }
                 }
             }
         }
 
         // Pagination at bottom
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = { /* Previous page */ },
+        val currentState = if (isSearchingFolders) questionSetsState else questionsState
+        val currentPage = currentState.currentPage
+        val totalPages = currentState.totalPages
+        
+        if (totalPages > 1) {
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.Black, RoundedCornerShape(20.dp))
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Anterior",
-                    tint = TextPrimary
-                )
-            }
-
-            repeat(3) { index ->
-                Surface(
+                IconButton(
+                    onClick = {
+                        if (isSearchingFolders) {
+                            viewModel.loadQuestionSets(currentPage - 1)
+                        } else {
+                            viewModel.loadQuestions(currentPage - 1)
+                        }
+                    },
+                    enabled = currentPage > 1,
                     modifier = Modifier
                         .size(40.dp)
-                        .clickable { /* Go to page */ },
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (index == 0) TextPrimary else Color.Black
+                        .background(Color.Black, RoundedCornerShape(20.dp))
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "${index + 1}",
-                            color = if (index == 0) Color.Black else TextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Anterior",
+                        tint = if (currentPage > 1) TextPrimary else Color.Gray
+                    )
+                }
+
+                // Show up to 3 page numbers
+                val startPage = maxOf(1, currentPage - 1)
+                val endPage = minOf(totalPages, startPage + 2)
+                
+                for (page in startPage..endPage) {
+                    Surface(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clickable {
+                                if (isSearchingFolders) {
+                                    viewModel.loadQuestionSets(page)
+                                } else {
+                                    viewModel.loadQuestions(page)
+                                }
+                            },
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (page == currentPage) TextPrimary else Color.Black
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "$page",
+                                color = if (page == currentPage) Color.Black else TextPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
-            }
 
-            IconButton(
-                onClick = { /* Next page */ },
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(Color.Black, RoundedCornerShape(20.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowForward,
-                    contentDescription = "Próxima",
-                    tint = TextPrimary
-                )
+                IconButton(
+                    onClick = {
+                        if (isSearchingFolders) {
+                            viewModel.loadQuestionSets(currentPage + 1)
+                        } else {
+                            viewModel.loadQuestions(currentPage + 1)
+                        }
+                    },
+                    enabled = currentPage < totalPages,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color.Black, RoundedCornerShape(20.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowForward,
+                        contentDescription = "Próxima",
+                        tint = if (currentPage < totalPages) TextPrimary else Color.Gray
+                    )
+                }
             }
         }
     }
