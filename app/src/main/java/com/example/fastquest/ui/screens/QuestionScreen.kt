@@ -49,10 +49,8 @@ fun QuestionScreen(
     onMenuClick: () -> Unit = {},
     onAnswerSubmitted: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val tokenManager = remember { TokenManager(context) }
     val questionsRepository = remember {
-        QuestionsRepository(ApiClient.questionsService, tokenManager)
+        QuestionsRepository(ApiClient.questionsService)
     }
     val viewModel: QuestionViewModel = viewModel(
         factory = QuestionViewModelFactory(questionsRepository)
@@ -92,7 +90,7 @@ fun QuestionScreen(
     // Map API options to UI options
     val displayOptions = questionState.options.map { option ->
         QuestionOption(
-            id = option.id,
+            id = option.id.toString(),
             text = option.text
         )
     }
@@ -153,7 +151,7 @@ fun QuestionScreen(
                         }
 
                         Text(
-                            text = "Questão #${questionState.question?.id?.take(8) ?: ""}",
+                            text = "Questão #${questionState.question?.id?.toString()?.take(8) ?: ""}",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
@@ -263,7 +261,7 @@ fun QuestionScreen(
                             color = CardBackground
                         ) {
                             Text(
-                                text = questionState.question?.text ?: "",
+                                text = questionState.question?.statement ?: "",
                                 fontSize = 14.sp,
                                 color = TextDark,
                                 lineHeight = 20.sp,

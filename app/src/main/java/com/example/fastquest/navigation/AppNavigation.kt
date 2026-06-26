@@ -38,7 +38,7 @@ fun AppNavigation(
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
                 },
-                onLoginClick = {
+                onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
@@ -52,7 +52,7 @@ fun AppNavigation(
                 onNavigateToLogin = {
                     navController.popBackStack()
                 },
-                onRegisterClick = {
+                onRegisterSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
@@ -108,7 +108,7 @@ fun AppNavigation(
         ) { backStackEntry ->
             val questionId = backStackEntry.arguments?.getString("questionId") ?: ""
             QuestionScreen(
-                questionNumber = "#$questionId",
+                questionId = questionId,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -118,8 +118,10 @@ fun AppNavigation(
                 onMenuClick = {
                     // Handle menu click
                 },
-                onConfirmClick = {
-                    // Handle answer confirmation
+                onAnswerSubmitted = {
+                    navController.navigate(Screen.Results.route) {
+                        popUpTo(Screen.Home.route)
+                    }
                 }
             )
         }

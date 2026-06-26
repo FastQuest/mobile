@@ -2,10 +2,9 @@ package com.example.fastquest.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fastquest.data.model.response.AuthResponse
-import com.example.fastquest.data.network.ApiClient
 import com.example.fastquest.data.network.NetworkResult
 import com.example.fastquest.data.repository.AuthRepository
+import com.example.fastquest.ui.state.AuthUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,26 +13,19 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel for authentication screens (Login and Register)
  */
-class AuthViewModel : ViewModel() {
+class AuthViewModel(
+    private val repository: AuthRepository
+) : ViewModel() {
     
-    private val repository = AuthRepository(
-        apiService = ApiClient.authService,
-        tokenManager = ApiClient.getTokenManager()
-    )
-    
-    // Authentication state
-    private val _authState = MutableStateFlow<NetworkResult<AuthResponse>?>(null)
-    val authState: StateFlow<NetworkResult<AuthResponse>?> = _authState.asStateFlow()
-    
-    // Login status
-    private val _isLoggedIn = MutableStateFlow(false)
-    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+    // Authentication UI state
+    private val _authState = MutableStateFlow(AuthUiState())
+    val authState: StateFlow<AuthUiState> = _authState.asStateFlow()
     
     init {
         // Observe login status
         viewModelScope.launch {
             repository.isLoggedIn().collect { loggedIn ->
-                _isLoggedIn.value = loggedIn
+                _authState.value = _authState.value.copy(isAuthenticated = loggedIn)
             }
         }
     }
@@ -43,8 +35,26 @@ class AuthViewModel : ViewModel() {
      */
     fun login(email: String, password: String) {
         viewModelScope.launch {
-            _authState.value = NetworkResult.Loading()
-            _authState.value = repository.login(email, password)
+            _authState.value = _authState.value.copy(isLoading = true, error = null)
+            
+            when (val result = repository.login(email, password)) {
+                is NetworkResult.Success -> {
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        isAuthenticated = true,
+                        error = null
+                    )
+                }
+                is NetworkResult.Error -> {
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                }
+                is NetworkResult.Loading -> {
+                    _authState.value = _authState.value.copy(isLoading = true)
+                }
+            }
         }
     }
     
@@ -53,8 +63,26 @@ class AuthViewModel : ViewModel() {
      */
     fun register(name: String, email: String, password: String) {
         viewModelScope.launch {
-            _authState.value = NetworkResult.Loading()
-            _authState.value = repository.register(name, email, password)
+            _authState.value = _authState.value.copy(isLoading = true, error = null)
+            
+            when (val result = repository.register(name, email, password)) {
+                is NetworkResult.Success -> {
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        isAuthenticated = true,
+                        error = null
+                    )
+                }
+                is NetworkResult.Error -> {
+                    _authState.value = _authState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                }
+                is NetworkResult.Loading -> {
+                    _authState.value = _authState.value.copy(isLoading = true)
+                }
+            }
         }
     }
     
@@ -64,7 +92,7 @@ class AuthViewModel : ViewModel() {
     fun logout() {
         viewModelScope.launch {
             repository.logout()
-            _authState.value = null
+            _authState.value = AuthUiState()
         }
     }
     
@@ -72,7 +100,7 @@ class AuthViewModel : ViewModel() {
      * Clear authentication state (for navigation)
      */
     fun clearAuthState() {
-        _authState.value = null
+        _authState.value = AuthUiState()
     }
     
     /**

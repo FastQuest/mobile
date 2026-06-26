@@ -136,8 +136,7 @@ fun Screen2(
                         nameError = null
                     },
                     placeholder = nameText,
-                    keyboardType = KeyboardType.Text,
-                    isError = nameError != null
+                    keyboardType = KeyboardType.Text
                 )
                 nameError?.let { error ->
                     Text(
@@ -160,8 +159,7 @@ fun Screen2(
                         emailError = null
                     },
                     placeholder = emailText,
-                    keyboardType = KeyboardType.Email,
-                    isError = emailError != null
+                    keyboardType = KeyboardType.Email
                 )
                 emailError?.let { error ->
                     Text(
@@ -185,8 +183,7 @@ fun Screen2(
                     },
                     placeholder = passwordText,
                     isPassword = true,
-                    keyboardType = KeyboardType.Password,
-                    isError = passwordError != null
+                    keyboardType = KeyboardType.Password
                 )
                 passwordError?.let { error ->
                     Text(

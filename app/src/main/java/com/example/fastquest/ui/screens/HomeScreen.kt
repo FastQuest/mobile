@@ -61,13 +61,11 @@ fun HomeScreen(
     onFilterClick: () -> Unit = {},
     onCreateClick: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val tokenManager = remember { TokenManager(context) }
     val questionSetsRepository = remember {
-        QuestionSetsRepository(ApiClient.questionSetsService, tokenManager)
+        QuestionSetsRepository(ApiClient.questionSetsService)
     }
     val questionsRepository = remember {
-        QuestionsRepository(ApiClient.questionsService, tokenManager)
+        QuestionsRepository(ApiClient.questionsService)
     }
     val viewModel: HomeViewModel = viewModel(
         factory = HomeViewModelFactory(questionSetsRepository, questionsRepository)
@@ -98,29 +96,31 @@ fun HomeScreen(
     val folders = questionSetsState.questionSets.map { questionSet ->
         val colors = listOf(CardYellow, CardOrange, CardBlue, CardRed)
         FolderItem(
-            id = questionSet.id,
-            title = questionSet.title,
-            description = questionSet.description ?: "Sem descrição",
-            color = colors[questionSet.id.hashCode() % colors.size]
+            id = questionSet.id.toString(),
+            title = questionSet.name,
+            description = questionSet.description,
+            color = colors[questionSet.id % colors.size]
         )
     }
     
     val questions = questionsState.questions.map { question ->
-        val dateFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val year = try {
-            dateFormat.format(Date(question.createdAt.toLongOrNull() ?: 0))
+            // Parse ISO date string and extract year
+            val date = dateFormat.parse(question.createdAt.substring(0, 10))
+            SimpleDateFormat("yyyy", Locale.getDefault()).format(date ?: Date())
         } catch (e: Exception) {
-            "N/A"
+            question.createdAt.substring(0, 4)
         }
         
         QuestionItem(
-            id = question.id,
-            creator = question.createdBy ?: "Desconhecido",
-            list = question.questionSetId ?: "N/A",
-            source = question.source ?: "N/A",
+            id = question.id.toString(),
+            creator = question.user?.name ?: "Desconhecido",
+            list = "N/A", // Question doesn't have questionSetId in the model
+            source = question.source?.name ?: "N/A",
             date = year,
-            discipline = question.tags?.firstOrNull() ?: "Geral",
-            description = question.text
+            discipline = question.subject?.name ?: "Geral",
+            description = question.statement
         )
     }
 
@@ -310,9 +310,8 @@ fun HomeScreen(
         }
 
         // Pagination at bottom
-        val currentState = if (isSearchingFolders) questionSetsState else questionsState
-        val currentPage = currentState.currentPage
-        val totalPages = currentState.totalPages
+        val currentPage = if (isSearchingFolders) questionSetsState.currentPage else questionsState.currentPage
+        val totalPages = if (isSearchingFolders) questionSetsState.totalPages else questionsState.totalPages
         
         if (totalPages > 1) {
             Row(

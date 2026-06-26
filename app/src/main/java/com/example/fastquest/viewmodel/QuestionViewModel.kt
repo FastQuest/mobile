@@ -2,13 +2,9 @@ package com.example.fastquest.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fastquest.data.model.response.Answer
-import com.example.fastquest.data.model.response.Question
-import com.example.fastquest.data.model.response.QuestionOption
-import com.example.fastquest.data.network.ApiClient
 import com.example.fastquest.data.network.NetworkResult
 import com.example.fastquest.data.repository.QuestionsRepository
-import com.example.fastquest.data.repository.SubmissionsRepository
+import com.example.fastquest.ui.state.QuestionUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,145 +14,143 @@ import kotlinx.coroutines.launch
  * ViewModel for Question screen
  * Manages individual question display and answer submission
  */
-class QuestionViewModel : ViewModel() {
+class QuestionViewModel(
+    private val questionsRepository: QuestionsRepository
+) : ViewModel() {
     
-    private val questionsRepository = QuestionsRepository(ApiClient.questionsService)
-    private val submissionsRepository = SubmissionsRepository(
-        ApiClient.submissionsService,
-        ApiClient.answersService
-    )
+    // Question UI state
+    private val _questionState = MutableStateFlow(QuestionUiState())
+    val questionState: StateFlow<QuestionUiState> = _questionState.asStateFlow()
     
-    // Current question state
-    private val _question = MutableStateFlow<NetworkResult<Question>>(NetworkResult.Loading())
-    val question: StateFlow<NetworkResult<Question>> = _question.asStateFlow()
+    // Selected answer option ID
+    private val _selectedOptionId = MutableStateFlow<String?>(null)
+    val selectedOptionId: StateFlow<String?> = _selectedOptionId.asStateFlow()
     
-    // Question options state
-    private val _questionOptions = MutableStateFlow<NetworkResult<List<QuestionOption>>>(NetworkResult.Loading())
-    val questionOptions: StateFlow<NetworkResult<List<QuestionOption>>> = _questionOptions.asStateFlow()
+    // Timer state
+    private val _timerSeconds = MutableStateFlow(0)
+    val timerSeconds: StateFlow<Int> = _timerSeconds.asStateFlow()
     
-    // Selected answer
-    private val _selectedOptionId = MutableStateFlow<Int?>(null)
-    val selectedOptionId: StateFlow<Int?> = _selectedOptionId.asStateFlow()
-    
-    // User answers collection (for multiple questions)
-    private val _userAnswers = MutableStateFlow<MutableList<Answer>>(mutableListOf())
-    val userAnswers: StateFlow<List<Answer>> = _userAnswers.asStateFlow()
-    
-    // Submission state
-    private val _submissionState = MutableStateFlow<NetworkResult<Boolean>?>(null)
-    val submissionState: StateFlow<NetworkResult<Boolean>?> = _submissionState.asStateFlow()
+    private val _isTimerRunning = MutableStateFlow(false)
+    val isTimerRunning: StateFlow<Boolean> = _isTimerRunning.asStateFlow()
     
     /**
      * Load question by ID
      */
-    fun loadQuestion(questionId: Int) {
+    fun loadQuestion(questionId: String) {
         viewModelScope.launch {
-            _question.value = NetworkResult.Loading()
-            _question.value = questionsRepository.getQuestion(questionId)
+            _questionState.value = _questionState.value.copy(isLoading = true, error = null)
             
-            // Also load question options
-            loadQuestionOptions(questionId)
-        }
-    }
-    
-    /**
-     * Load question options
-     */
-    fun loadQuestionOptions(questionId: Int) {
-        viewModelScope.launch {
-            _questionOptions.value = NetworkResult.Loading()
-            _questionOptions.value = questionsRepository.getQuestionOptions(questionId)
+            // Convert String ID to Int for API call
+            val id = questionId.toIntOrNull() ?: run {
+                _questionState.value = _questionState.value.copy(
+                    isLoading = false,
+                    error = "Invalid question ID"
+                )
+                return@launch
+            }
+            
+            when (val result = questionsRepository.getQuestion(id)) {
+                is NetworkResult.Success -> {
+                    // Load options
+                    when (val optionsResult = questionsRepository.getQuestionOptions(id)) {
+                        is NetworkResult.Success -> {
+                            _questionState.value = _questionState.value.copy(
+                                question = result.data,
+                                options = optionsResult.data,
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                        is NetworkResult.Error -> {
+                            _questionState.value = _questionState.value.copy(
+                                question = result.data,
+                                isLoading = false,
+                                error = optionsResult.message
+                            )
+                        }
+                        is NetworkResult.Loading -> {
+                            _questionState.value = _questionState.value.copy(isLoading = true)
+                        }
+                    }
+                }
+                is NetworkResult.Error -> {
+                    _questionState.value = _questionState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                }
+                is NetworkResult.Loading -> {
+                    _questionState.value = _questionState.value.copy(isLoading = true)
+                }
+            }
         }
     }
     
     /**
      * Select an answer option
      */
-    fun selectOption(optionId: Int) {
+    fun selectOption(optionId: String) {
         _selectedOptionId.value = optionId
     }
     
     /**
-     * Clear selected option
+     * Submit answer
+     */
+    fun submitAnswer() {
+        if (_selectedOptionId.value != null) {
+            _questionState.value = _questionState.value.copy(
+                isSubmitting = true,
+                answerSubmitted = false
+            )
+            
+            // Simulate submission (in real app, would call repository)
+            viewModelScope.launch {
+                // Here you would call repository to submit answer
+                // For now, just mark as submitted
+                _questionState.value = _questionState.value.copy(
+                    isSubmitting = false,
+                    answerSubmitted = true
+                )
+            }
+        }
+    }
+    
+    /**
+     * Start timer
+     */
+    fun startTimer() {
+        _isTimerRunning.value = true
+    }
+    
+    /**
+     * Pause timer
+     */
+    fun pauseTimer() {
+        _isTimerRunning.value = false
+    }
+    
+    /**
+     * Reset timer
+     */
+    fun resetTimer() {
+        _timerSeconds.value = 0
+        _isTimerRunning.value = false
+    }
+    
+    /**
+     * Increment timer (called every second)
+     */
+    fun incrementTimer() {
+        if (_isTimerRunning.value) {
+            _timerSeconds.value += 1
+        }
+    }
+    
+    /**
+     * Clear selection
      */
     fun clearSelection() {
         _selectedOptionId.value = null
-    }
-    
-    /**
-     * Confirm answer for current question
-     */
-    fun confirmAnswer(questionId: Int) {
-        val selectedId = _selectedOptionId.value
-        if (selectedId != null) {
-            val answer = Answer(
-                questionId = questionId,
-                selectedOptionId = selectedId,
-                isCorrect = null // Will be determined by backend
-            )
-            
-            // Add to answers collection
-            val currentAnswers = _userAnswers.value.toMutableList()
-            // Remove existing answer for this question if any
-            currentAnswers.removeAll { it.questionId == questionId }
-            currentAnswers.add(answer)
-            _userAnswers.value = currentAnswers
-            
-            // Clear selection for next question
-            clearSelection()
-        }
-    }
-    
-    /**
-     * Submit all answers for a question set
-     */
-    fun submitAnswers(questionSetId: Int) {
-        viewModelScope.launch {
-            _submissionState.value = NetworkResult.Loading()
-            
-            val answers = _userAnswers.value
-            if (answers.isEmpty()) {
-                _submissionState.value = NetworkResult.Error("No answers to submit")
-                return@launch
-            }
-            
-            val result = submissionsRepository.createSubmission(questionSetId, answers)
-            
-            _submissionState.value = when (result) {
-                is NetworkResult.Success -> NetworkResult.Success(true)
-                is NetworkResult.Error -> NetworkResult.Error(result.message, result.code)
-                is NetworkResult.Loading -> NetworkResult.Loading()
-            }
-        }
-    }
-    
-    /**
-     * Clear all user answers
-     */
-    fun clearAllAnswers() {
-        _userAnswers.value = mutableListOf()
-        _selectedOptionId.value = null
-    }
-    
-    /**
-     * Get answer for specific question
-     */
-    fun getAnswerForQuestion(questionId: Int): Answer? {
-        return _userAnswers.value.find { it.questionId == questionId }
-    }
-    
-    /**
-     * Check if question has been answered
-     */
-    fun isQuestionAnswered(questionId: Int): Boolean {
-        return _userAnswers.value.any { it.questionId == questionId }
-    }
-    
-    /**
-     * Clear submission state
-     */
-    fun clearSubmissionState() {
-        _submissionState.value = null
     }
 }
 

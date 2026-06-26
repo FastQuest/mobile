@@ -36,13 +36,10 @@ fun ResultsScreen(
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val tokenManager = remember { TokenManager(context) }
     val submissionsRepository = remember {
         SubmissionsRepository(
             ApiClient.submissionsService,
-            ApiClient.answersService,
-            tokenManager
+            ApiClient.answersService
         )
     }
     val viewModel: ResultsViewModel = viewModel(
@@ -196,13 +193,14 @@ fun ResultsScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
-                                    StatItem("Total", "${metrics?.totalQuestions ?: 0}")
+                                    StatItem("Total", "${metrics?.totalQuestionsAnswered ?: 0}")
                                     StatItem("Corretas", "${metrics?.correctAnswers ?: 0}")
-                                    StatItem("Incorretas", "${metrics?.incorrectAnswers ?: 0}")
+                                    val incorrect = (metrics?.totalQuestionsAnswered ?: 0) - (metrics?.correctAnswers ?: 0)
+                                    StatItem("Incorretas", "$incorrect")
                                 }
                                 
                                 Text(
-                                    text = "Taxa de Acerto: ${String.format("%.1f", metrics?.accuracyRate ?: 0.0)}%",
+                                    text = "Taxa de Acerto: ${String.format("%.1f", (metrics?.accuracy ?: 0f) * 100)}%",
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ButtonDarkBlue
@@ -238,7 +236,7 @@ fun ResultsScreen(
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
-                                        text = "${metrics?.averageTimePerQuestion ?: 0}s",
+                                        text = "N/A",
                                         fontSize = 32.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = ButtonDarkBlue
@@ -288,8 +286,8 @@ fun ResultsScreen(
                             }
                         }
 
-                        // Performance by category (if available)
-                        if (!metrics?.categoryPerformance.isNullOrEmpty()) {
+                        // Performance by subject (if available)
+                        if (!metrics?.bySubject.isNullOrEmpty()) {
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -304,14 +302,14 @@ fun ResultsScreen(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = "Desempenho por Categoria",
+                                        text = "Desempenho por Disciplina",
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = TextDark
                                     )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     
-                                    metrics?.categoryPerformance?.take(5)?.forEach { (category, performance) ->
+                                    metrics?.bySubject?.take(5)?.forEach { subjectPerf ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -319,13 +317,13 @@ fun ResultsScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Text(
-                                                text = category,
+                                                text = subjectPerf.subject,
                                                 fontSize = 14.sp,
                                                 color = TextDark,
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Text(
-                                                text = "${String.format("%.1f", performance)}%",
+                                                text = "${String.format("%.1f", subjectPerf.accuracy * 100)}%",
                                                 fontSize = 14.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = ButtonDarkBlue
