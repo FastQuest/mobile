@@ -49,5 +49,3 @@ interface SubmissionsApiService {
         @Body request: CreateSubmissionRequest
     ): Submission
 }
-
-// Made with Bob

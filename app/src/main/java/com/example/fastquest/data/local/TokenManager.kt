@@ -119,5 +119,3 @@ class TokenManager(private val context: Context) {
         }
     }
 }
-
-// Made with Bob

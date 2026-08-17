@@ -67,5 +67,3 @@ class ResultsViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
-// Made with Bob

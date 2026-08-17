@@ -1,4 +1,4 @@
-// Unit tests for Login Screen (Screen1)
+// Unit tests for Login Screen
 package com.example.fastquest.ui.screens
 
 import org.junit.Test
@@ -8,7 +8,7 @@ import org.junit.Assert.*
  * Testes unitários simples para a tela de Login
  * Estes testes verificam a lógica básica e comportamento esperado
  */
-class Screen1Test {
+class LoginScreenTest {
 
     @Test
     fun `login screen should have correct text labels`() {

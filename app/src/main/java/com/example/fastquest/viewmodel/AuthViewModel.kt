@@ -117,5 +117,3 @@ class AuthViewModel(
         return password.length >= 6
     }
 }
-
-// Made with Bob

@@ -25,7 +25,7 @@ Este guia explica como executar os testes unitários do projeto FastQuest.
 #### Executar testes de uma classe específica:
 ```bash
 # Teste da tela de Login
-./gradlew test --tests Screen1Test
+./gradlew test --tests LoginScreenTest
 
 # Teste da tela Home
 ./gradlew test --tests HomeScreenTest
@@ -36,7 +36,7 @@ Este guia explica como executar os testes unitários do projeto FastQuest.
 
 #### Executar um teste específico:
 ```bash
-./gradlew test --tests Screen1Test."login screen should have correct text labels"
+./gradlew test --tests LoginScreenTest."login screen should have correct text labels"
 ```
 
 #### Executar testes e gerar relatório HTML:
@@ -62,9 +62,9 @@ Este guia explica como executar os testes unitários do projeto FastQuest.
 5. Os resultados aparecerão na aba "Run" na parte inferior
 
 #### Opção B: Executar testes de uma classe específica
-1. Abra o arquivo de teste desejado (ex: `Screen1Test.kt`)
+1. Abra o arquivo de teste desejado (ex: `LoginScreenTest.kt`)
 2. Clique no ícone ▶️ verde ao lado do nome da classe
-3. Selecione **"Run 'Screen1Test'"**
+3. Selecione **"Run 'LoginScreenTest'"**
 
 #### Opção C: Executar um teste individual
 1. Abra o arquivo de teste
@@ -100,9 +100,9 @@ Este guia explica como executar os testes unitários do projeto FastQuest.
 ```
 > Task :app:testDebugUnitTest
 
-Screen1Test > login screen should have correct text labels() PASSED
-Screen1Test > email validation should work correctly() PASSED
-Screen1Test > password should not be empty for valid login() PASSED
+LoginScreenTest > login screen should have correct text labels() PASSED
+LoginScreenTest > email validation should work correctly() PASSED
+LoginScreenTest > password should not be empty for valid login() PASSED
 ...
 
 BUILD SUCCESSFUL in 5s
@@ -131,8 +131,8 @@ app/src/test/java/com/example/fastquest/
 │   ├── components/
 │   │   └── CommonComponentsTest.kt   (15 testes)
 │   └── screens/
-│       ├── Screen1Test.kt            (6 testes)
-│       ├── Screen2Test.kt            (7 testes)
+│       ├── LoginScreenTest.kt            (6 testes)
+│       ├── RegisterScreenTest.kt     (7 testes)
 │       ├── HomeScreenTest.kt         (9 testes)
 │       ├── QuestionScreenTest.kt     (13 testes)
 │       ├── FolderDetailsScreenTest.kt (14 testes)
@@ -215,7 +215,7 @@ app/src/test/java/com/example/fastquest/
 
 ### Exemplo 1: Testar após modificar tela de Login
 ```bash
-./gradlew test --tests Screen1Test
+./gradlew test --tests LoginScreenTest
 ```
 
 ### Exemplo 2: Testar toda a navegação

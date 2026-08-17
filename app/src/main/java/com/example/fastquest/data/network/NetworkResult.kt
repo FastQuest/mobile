@@ -62,5 +62,3 @@ fun <T> NetworkResult<T>.getErrorOrNull(): String? {
         else -> null
     }
 }
-
-// Made with Bob

@@ -20,5 +20,3 @@ data class AuthResponse(
     @Json(name = "user_id")
     val userId: Int
 )
-
-// Made with Bob

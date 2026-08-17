@@ -34,7 +34,7 @@ fun AppNavigation(
     ) {
         // Login screen
         composable(Screen.Login.route) {
-            Screen1(
+            LoginScreen(
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
                 },
@@ -48,7 +48,7 @@ fun AppNavigation(
 
         // Register screen
         composable(Screen.Register.route) {
-            Screen2(
+            RegisterScreen(
                 onNavigateToLogin = {
                     navController.popBackStack()
                 },

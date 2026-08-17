@@ -153,5 +153,3 @@ class QuestionViewModel(
         _selectedOptionId.value = null
     }
 }
-
-// Made with Bob

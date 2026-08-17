@@ -22,7 +22,7 @@ import com.example.fastquest.viewmodel.AuthViewModel
 import com.example.fastquest.viewmodel.AuthViewModelFactory
 
 @Composable
-fun Screen1(
+fun LoginScreen(
     onNavigateToRegister: () -> Unit = {},
     onLoginSuccess: () -> Unit = {}
 ) {
@@ -195,8 +195,8 @@ fun Screen1(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun Screen1Preview() {
+fun LoginScreenPreview() {
     FastQuestTheme {
-        Screen1()
+        LoginScreen()
     }
 }

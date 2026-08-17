@@ -26,5 +26,3 @@ interface AnswersApiService {
     @GET("answers/overall-performance")
     suspend fun getOverallPerformance(): OverallPerformance
 }
-
-// Made with Bob

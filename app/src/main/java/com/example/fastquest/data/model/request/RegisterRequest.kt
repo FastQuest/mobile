@@ -17,5 +17,3 @@ data class RegisterRequest(
     @Json(name = "password")
     val password: String
 )
-
-// Made with Bob

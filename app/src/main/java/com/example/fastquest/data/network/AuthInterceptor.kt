@@ -31,5 +31,3 @@ class AuthInterceptor(private val tokenManager: TokenManager) : Interceptor {
         return chain.proceed(request)
     }
 }
-
-// Made with Bob

@@ -112,5 +112,3 @@ class QuestionSetsRepository(
         }
     }
 }
-
-// Made with Bob

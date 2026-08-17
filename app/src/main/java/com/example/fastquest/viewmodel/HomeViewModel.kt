@@ -193,5 +193,3 @@ class HomeViewModel(
         }
     }
 }
-
-// Made with Bob

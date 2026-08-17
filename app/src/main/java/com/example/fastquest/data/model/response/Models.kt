@@ -22,6 +22,15 @@ data class User(
 )
 
 /**
+ * Envelope for endpoints that wrap their payload in a "data" field (e.g. GET /users/me)
+ */
+@JsonClass(generateAdapter = true)
+data class UserResponse(
+    @Json(name = "data")
+    val data: User
+)
+
+/**
  * Subject model
  */
 @JsonClass(generateAdapter = true)
@@ -257,5 +266,3 @@ data class OverallPerformance(
     @Json(name = "recent_trend")
     val recentTrend: String? = null
 )
-
-// Made with Bob

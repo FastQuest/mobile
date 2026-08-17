@@ -56,5 +56,3 @@ interface QuestionSetsApiService {
         @Path("id") id: Int
     ): List<Question>
 }
-
-// Made with Bob

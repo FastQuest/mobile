@@ -3,7 +3,7 @@ package com.example.fastquest.data.network.service
 import com.example.fastquest.data.model.request.LoginRequest
 import com.example.fastquest.data.model.request.RegisterRequest
 import com.example.fastquest.data.model.response.AuthResponse
-import com.example.fastquest.data.model.response.User
+import com.example.fastquest.data.model.response.UserResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -35,7 +35,5 @@ interface AuthApiService {
      * @return User profile data
      */
     @GET("users/me")
-    suspend fun getCurrentUser(): User
+    suspend fun getCurrentUser(): UserResponse
 }
-
-// Made with Bob

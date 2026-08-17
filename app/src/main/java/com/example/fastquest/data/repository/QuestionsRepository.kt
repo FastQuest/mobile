@@ -94,5 +94,3 @@ class QuestionsRepository(
         }
     }
 }
-
-// Made with Bob

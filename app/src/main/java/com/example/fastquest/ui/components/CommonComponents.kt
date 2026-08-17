@@ -1,5 +1,6 @@
 package com.example.fastquest.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,7 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -24,32 +26,17 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.fastquest.R
 import com.example.fastquest.ui.theme.*
 
 @Composable
 fun FastQuestLogo(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "FAST",
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Bold,
-            fontStyle = FontStyle.Italic,
-            color = TextPrimary,
-            letterSpacing = 2.sp
-        )
-        Text(
-            text = "&Quest",
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Normal,
-            fontStyle = FontStyle.Italic,
-            color = TextPrimary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.offset(y = (-12).dp)
-        )
-    }
+    Image(
+        painter = painterResource(id = R.drawable.fastquest_logo),
+        contentDescription = "FastQuest",
+        modifier = modifier.size(200.dp),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable

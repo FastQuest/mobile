@@ -54,5 +54,3 @@ data class PerformanceUiState(
     val isLoading: Boolean = false,
     val error: String? = null
 )
-
-// Made with Bob

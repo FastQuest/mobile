@@ -81,5 +81,3 @@ class ResultsViewModel(
         return if (total > 0) (correct.toFloat() / total.toFloat()) * 100 else 0f
     }
 }
-
-// Made with Bob

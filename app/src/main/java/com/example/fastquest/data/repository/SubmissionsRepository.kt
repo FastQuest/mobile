@@ -155,5 +155,3 @@ class SubmissionsRepository(
         }
     }
 }
-
-// Made with Bob

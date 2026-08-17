@@ -15,5 +15,3 @@ data class CreateSubmissionRequest(
     @Json(name = "answers")
     val answers: List<Answer>
 )
-
-// Made with Bob

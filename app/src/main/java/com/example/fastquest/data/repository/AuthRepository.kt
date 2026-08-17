@@ -91,8 +91,8 @@ class AuthRepository(
      */
     suspend fun getCurrentUser(): NetworkResult<User> {
         return try {
-            val user = apiService.getCurrentUser()
-            NetworkResult.Success(user)
+            val response = apiService.getCurrentUser()
+            NetworkResult.Success(response.data)
         } catch (e: HttpException) {
             NetworkResult.Error(
                 message = when (e.code()) {
@@ -132,5 +132,3 @@ class AuthRepository(
         return tokenManager.getUserId()
     }
 }
-
-// Made with Bob

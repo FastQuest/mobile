@@ -123,5 +123,3 @@ object ApiClient {
         }
     }
 }
-
-// Made with Bob

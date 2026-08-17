@@ -1,4 +1,4 @@
-// Unit tests for Register Screen (Screen2)
+// Unit tests for Register Screen
 package com.example.fastquest.ui.screens
 
 import org.junit.Test
@@ -8,7 +8,7 @@ import org.junit.Assert.*
  * Testes unitários simples para a tela de Registro
  * Estes testes verificam a lógica básica e comportamento esperado
  */
-class Screen2Test {
+class RegisterScreenTest {
 
     @Test
     fun `register screen should have correct text labels`() {
