@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.fastquest.data.network.NetworkResult
 import com.example.fastquest.data.repository.QuestionSetsRepository
 import com.example.fastquest.data.repository.QuestionsRepository
+import com.example.fastquest.ui.state.QuestionFilterSelection
+import com.example.fastquest.ui.state.QuestionFiltersUiState
 import com.example.fastquest.ui.state.QuestionSetsUiState
 import com.example.fastquest.ui.state.QuestionsUiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,33 +22,50 @@ class HomeViewModel(
     private val questionSetsRepository: QuestionSetsRepository,
     private val questionsRepository: QuestionsRepository
 ) : ViewModel() {
-    
+
     // Question sets UI state
     private val _questionSetsState = MutableStateFlow(QuestionSetsUiState())
     val questionSetsState: StateFlow<QuestionSetsUiState> = _questionSetsState.asStateFlow()
-    
+
     // Questions UI state
     private val _questionsState = MutableStateFlow(QuestionsUiState())
     val questionsState: StateFlow<QuestionsUiState> = _questionsState.asStateFlow()
-    
-    // Search term
+
+    // Search term (pastas)
     private val _searchTerm = MutableStateFlow<String?>(null)
     val searchTerm: StateFlow<String?> = _searchTerm.asStateFlow()
-    
+
+    // Search term (perguntas)
+    private val _questionsSearchTerm = MutableStateFlow<String?>(null)
+    val questionsSearchTerm: StateFlow<String?> = _questionsSearchTerm.asStateFlow()
+
+    // Available filter options (subjects, sources, years) for the Filtros dialog
+    private val _questionFiltersState = MutableStateFlow(QuestionFiltersUiState())
+    val questionFiltersState: StateFlow<QuestionFiltersUiState> = _questionFiltersState.asStateFlow()
+
+    // Currently selected filters for questions
+    private val _selectedFilters = MutableStateFlow(QuestionFilterSelection())
+    val selectedFilters: StateFlow<QuestionFilterSelection> = _selectedFilters.asStateFlow()
+
+    // Sort order for question sets (pastas)
+    private val _questionSetsOrderBy = MutableStateFlow("created_at desc")
+    val questionSetsOrderBy: StateFlow<String> = _questionSetsOrderBy.asStateFlow()
+
     /**
      * Load question sets with pagination
      */
     fun loadQuestionSets(page: Int = 1, searchTerm: String? = null, refresh: Boolean = false) {
         viewModelScope.launch {
             _questionSetsState.value = _questionSetsState.value.copy(isLoading = true, error = null)
-            
+
             val result = questionSetsRepository.getQuestionSets(
                 page = page,
                 perPage = 10,
+                orderBy = _questionSetsOrderBy.value,
                 searchTerm = searchTerm,
                 includeRelations = true
             )
-            
+
             when (result) {
                 is NetworkResult.Success -> {
                     _questionSetsState.value = _questionSetsState.value.copy(
@@ -69,16 +88,26 @@ class HomeViewModel(
             }
         }
     }
-    
+
     /**
-     * Load questions with pagination
+     * Load questions with pagination, applying the current search term and selected filters
      */
     fun loadQuestions(page: Int = 1, refresh: Boolean = false) {
         viewModelScope.launch {
             _questionsState.value = _questionsState.value.copy(isLoading = true, error = null)
-            
-            val result = questionsRepository.getQuestions(page, perPage = 10)
-            
+
+            val filters = _selectedFilters.value
+            val result = questionsRepository.getQuestions(
+                page = page,
+                perPage = 10,
+                orderBy = filters.orderBy,
+                searchTerm = _questionsSearchTerm.value?.takeIf { it.isNotBlank() }
+                    ?: filters.topics.lastOrNull(),
+                subjectId = filters.subjectId,
+                sourceId = filters.sourceId,
+                year = filters.year
+            )
+
             when (result) {
                 is NetworkResult.Success -> {
                     _questionsState.value = _questionsState.value.copy(
@@ -101,7 +130,67 @@ class HomeViewModel(
             }
         }
     }
-    
+
+    /**
+     * Load the available filter options (subjects, sources, years) for the Filtros dialog
+     */
+    fun loadQuestionFilters() {
+        viewModelScope.launch {
+            _questionFiltersState.value = _questionFiltersState.value.copy(isLoading = true, error = null)
+
+            when (val result = questionsRepository.getQuestionFilters()) {
+                is NetworkResult.Success -> {
+                    _questionFiltersState.value = _questionFiltersState.value.copy(
+                        filters = result.data,
+                        isLoading = false,
+                        error = null
+                    )
+                }
+                is NetworkResult.Error -> {
+                    _questionFiltersState.value = _questionFiltersState.value.copy(
+                        isLoading = false,
+                        error = result.message
+                    )
+                }
+                is NetworkResult.Loading -> {
+                    _questionFiltersState.value = _questionFiltersState.value.copy(isLoading = true)
+                }
+            }
+        }
+    }
+
+    /**
+     * Apply a new filter selection and reload questions from page 1
+     */
+    fun applyFilters(selection: QuestionFilterSelection) {
+        _selectedFilters.value = selection
+        loadQuestions(page = 1, refresh = true)
+    }
+
+    /**
+     * Reset all selected filters and reload questions from page 1
+     */
+    fun resetFilters() {
+        _selectedFilters.value = QuestionFilterSelection()
+        loadQuestions(page = 1, refresh = true)
+    }
+
+    /**
+     * Apply a new sort order for question sets (pastas) and reload from page 1
+     */
+    fun applyQuestionSetsOrderBy(orderBy: String) {
+        _questionSetsOrderBy.value = orderBy
+        loadQuestionSets(page = 1, searchTerm = _searchTerm.value, refresh = true)
+    }
+
+    /**
+     * Search questions by statement text
+     */
+    fun searchQuestions(term: String) {
+        _questionsSearchTerm.value = term
+        loadQuestions(page = 1, refresh = true)
+    }
+
     /**
      * Search question sets
      */
@@ -109,13 +198,18 @@ class HomeViewModel(
         _searchTerm.value = term
         loadQuestionSets(page = 1, searchTerm = term, refresh = true)
     }
-    
+
     /**
-     * Clear search
+     * Clear search (pastas or perguntas depending on current mode)
      */
-    fun clearSearch() {
-        _searchTerm.value = null
-        loadQuestionSets(page = 1, searchTerm = null, refresh = true)
+    fun clearSearch(isSearchingFolders: Boolean = true) {
+        if (isSearchingFolders) {
+            _searchTerm.value = null
+            loadQuestionSets(page = 1, searchTerm = null, refresh = true)
+        } else {
+            _questionsSearchTerm.value = null
+            loadQuestions(page = 1, refresh = true)
+        }
     }
     
     /**

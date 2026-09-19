@@ -2,6 +2,7 @@ package com.example.fastquest.data.repository
 
 import com.example.fastquest.data.model.response.PaginatedResponse
 import com.example.fastquest.data.model.response.Question
+import com.example.fastquest.data.model.response.QuestionFilters
 import com.example.fastquest.data.model.response.QuestionOption
 import com.example.fastquest.data.network.NetworkResult
 import com.example.fastquest.data.network.service.QuestionsApiService
@@ -14,19 +15,38 @@ import java.io.IOException
 class QuestionsRepository(
     private val apiService: QuestionsApiService
 ) {
-    
+
     /**
      * Get paginated list of questions
      * @param page Page number
      * @param perPage Items per page
+     * @param orderBy Sort order
+     * @param searchTerm Search term matched against the question statement
+     * @param subjectId Filter by subject (Disciplina)
+     * @param sourceId Filter by source (Fonte)
+     * @param year Filter by year (Data)
      * @return NetworkResult with paginated questions or error
      */
     suspend fun getQuestions(
         page: Int = 1,
-        perPage: Int = 10
+        perPage: Int = 10,
+        orderBy: String = "created_at desc",
+        searchTerm: String? = null,
+        subjectId: Int? = null,
+        sourceId: Int? = null,
+        year: Int? = null
     ): NetworkResult<PaginatedResponse<Question>> {
         return try {
-            val response = apiService.getQuestions(page, perPage)
+            val response = apiService.getQuestions(
+                page = page,
+                perPage = perPage,
+                orderBy = orderBy,
+                include = "user,subject,source",
+                statement = searchTerm,
+                subject = subjectId,
+                source = sourceId,
+                year = year
+            )
             NetworkResult.Success(response)
         } catch (e: HttpException) {
             NetworkResult.Error(
@@ -84,6 +104,29 @@ class QuestionsRepository(
                     401 -> "Session expired. Please login again."
                     404 -> "Question options not found"
                     else -> "Failed to load question options: ${e.message()}"
+                },
+                code = e.code()
+            )
+        } catch (e: IOException) {
+            NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: Exception) {
+            NetworkResult.Error("An unexpected error occurred: ${e.message}")
+        }
+    }
+
+    /**
+     * Get available filter options (subjects, sources, years) for questions
+     * @return NetworkResult with available filter values or error
+     */
+    suspend fun getQuestionFilters(): NetworkResult<QuestionFilters> {
+        return try {
+            val filters = apiService.getQuestionFilters()
+            NetworkResult.Success(filters)
+        } catch (e: HttpException) {
+            NetworkResult.Error(
+                message = when (e.code()) {
+                    401 -> "Session expired. Please login again."
+                    else -> "Failed to load filters: ${e.message()}"
                 },
                 code = e.code()
             )

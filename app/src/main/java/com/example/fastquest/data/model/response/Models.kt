@@ -145,6 +145,33 @@ data class QuestionSet(
 )
 
 /**
+ * A single selectable filter option (subject, source, etc.)
+ */
+@JsonClass(generateAdapter = true)
+data class FilterItem(
+    @Json(name = "id")
+    val id: Int,
+
+    @Json(name = "name")
+    val name: String
+)
+
+/**
+ * Available filter options for questions, returned by GET /questions/filters
+ */
+@JsonClass(generateAdapter = true)
+data class QuestionFilters(
+    @Json(name = "subjects")
+    val subjects: List<FilterItem> = emptyList(),
+
+    @Json(name = "sources")
+    val sources: List<FilterItem> = emptyList(),
+
+    @Json(name = "years")
+    val years: List<Int> = emptyList()
+)
+
+/**
  * Pagination metadata
  */
 @JsonClass(generateAdapter = true)

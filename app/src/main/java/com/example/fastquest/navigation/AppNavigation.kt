@@ -69,12 +69,6 @@ fun AppNavigation(
                 onQuestionClick = { questionId ->
                     navController.navigate(Screen.Question.createRoute(questionId))
                 },
-                onMenuClick = {
-                    // Handle menu click - could open drawer
-                },
-                onFilterClick = {
-                    // Handle filter click - could open filter dialog
-                },
                 onCreateClick = {
                     navController.navigate(Screen.Create.route)
                 }

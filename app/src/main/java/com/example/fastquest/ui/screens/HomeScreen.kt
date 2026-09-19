@@ -32,8 +32,7 @@ import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
 import com.example.fastquest.viewmodel.HomeViewModel
 import com.example.fastquest.viewmodel.HomeViewModelFactory
-import java.text.SimpleDateFormat
-import java.util.*
+import kotlinx.coroutines.delay
 
 data class FolderItem(
     val id: String,
@@ -57,8 +56,6 @@ fun HomeScreen(
     showFolders: Boolean = true,
     onFolderClick: (String) -> Unit = {},
     onQuestionClick: (String) -> Unit = {},
-    onMenuClick: () -> Unit = {},
-    onFilterClick: () -> Unit = {},
     onCreateClick: () -> Unit = {}
 ) {
     val questionSetsRepository = remember {
@@ -73,25 +70,45 @@ fun HomeScreen(
     
     val questionSetsState by viewModel.questionSetsState.collectAsState()
     val questionsState by viewModel.questionsState.collectAsState()
-    
+    val questionFiltersState by viewModel.questionFiltersState.collectAsState()
+    val selectedFilters by viewModel.selectedFilters.collectAsState()
+    val questionSetsOrderBy by viewModel.questionSetsOrderBy.collectAsState()
+
     var searchText by remember { mutableStateOf("") }
     var isSearchingFolders by remember { mutableStateOf(showFolders) }
-    
-    // Load data on first composition
+    var showMenu by remember { mutableStateOf(false) }
+    var showFilterDialog by remember { mutableStateOf(false) }
+
+    // Prefetch the other tab and the filter options so toggling/filtering feels instant
     LaunchedEffect(Unit) {
-        viewModel.loadQuestionSets()
-        viewModel.loadQuestions()
+        if (showFolders) viewModel.loadQuestions() else viewModel.loadQuestionSets()
+        viewModel.loadQuestionFilters()
     }
-    
-    // Reload when switching between folders and questions
+
+    // Reload the active tab when switching between folders and questions
     LaunchedEffect(isSearchingFolders) {
         if (isSearchingFolders) {
-            viewModel.loadQuestionSets()
+            if (searchText.isBlank()) viewModel.loadQuestionSets() else viewModel.searchQuestionSets(searchText)
         } else {
-            viewModel.loadQuestions()
+            if (searchText.isBlank()) viewModel.loadQuestions() else viewModel.searchQuestions(searchText)
         }
     }
-    
+
+    // Debounce typed search so we don't hit the backend on every keystroke
+    var isFirstSearch by remember { mutableStateOf(true) }
+    LaunchedEffect(searchText) {
+        if (isFirstSearch) {
+            isFirstSearch = false
+        } else {
+            delay(400)
+            if (isSearchingFolders) {
+                if (searchText.isBlank()) viewModel.clearSearch(true) else viewModel.searchQuestionSets(searchText)
+            } else {
+                if (searchText.isBlank()) viewModel.clearSearch(false) else viewModel.searchQuestions(searchText)
+            }
+        }
+    }
+
     // Map API data to UI models
     val folders = questionSetsState.questionSets.map { questionSet ->
         val colors = listOf(CardYellow, CardOrange, CardBlue, CardRed)
@@ -104,19 +121,17 @@ fun HomeScreen(
     }
     
     val questions = questionsState.questions.map { question ->
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val year = try {
-            // Parse ISO date string and extract year
-            val date = dateFormat.parse(question.createdAt.substring(0, 10))
-            SimpleDateFormat("yyyy", Locale.getDefault()).format(date ?: Date())
-        } catch (e: Exception) {
+        // Prefer the exam source year (what the "Data" label refers to); fall back to createdAt
+        val year = question.source?.year?.toString() ?: try {
             question.createdAt.substring(0, 4)
+        } catch (e: Exception) {
+            "N/A"
         }
-        
+
         QuestionItem(
             id = question.id.toString(),
             creator = question.user?.name ?: "Desconhecido",
-            list = "N/A", // Question doesn't have questionSetId in the model
+            list = "N/A", // GET /questions doesn't return the owning question set; backend would need to expose it
             source = question.source?.name ?: "N/A",
             date = year,
             discipline = question.subject?.name ?: "Geral",
@@ -151,17 +166,27 @@ fun HomeScreen(
                         placeholder = if (isSearchingFolders) "Pesquise pastas" else "Pesquise perguntas",
                         modifier = Modifier.weight(1f)
                     )
-                    
-                    IconButton(
-                        onClick = onMenuClick,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(TextFieldBackground, RoundedCornerShape(28.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = Color.Black
+
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(TextFieldBackground, RoundedCornerShape(28.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menu",
+                                tint = Color.Black
+                            )
+                        }
+
+                        HomeMenuDropdown(
+                            expanded = showMenu,
+                            onHomeClick = { isSearchingFolders = true },
+                            onCreateClick = onCreateClick,
+                            onProfileClick = { /* Perfil ainda nao implementado */ },
+                            onDismiss = { showMenu = false }
                         )
                     }
                 }
@@ -194,7 +219,7 @@ fun HomeScreen(
                     }
 
                     IconButton(
-                        onClick = onFilterClick,
+                        onClick = { showFilterDialog = true },
                         modifier = Modifier
                             .size(40.dp)
                             .background(Color.Black, RoundedCornerShape(20.dp))
@@ -389,6 +414,25 @@ fun HomeScreen(
                     )
                 }
             }
+        }
+
+        if (showFilterDialog) {
+            FilterDialog(
+                isQuestionsMode = !isSearchingFolders,
+                availableFilters = questionFiltersState.filters,
+                selection = selectedFilters,
+                questionSetsOrderBy = questionSetsOrderBy,
+                onSelectionChange = { viewModel.applyFilters(it) },
+                onQuestionSetsOrderByChange = { viewModel.applyQuestionSetsOrderBy(it) },
+                onReset = {
+                    if (isSearchingFolders) {
+                        viewModel.applyQuestionSetsOrderBy("created_at desc")
+                    } else {
+                        viewModel.resetFilters()
+                    }
+                },
+                onDismiss = { showFilterDialog = false }
+            )
         }
     }
 }

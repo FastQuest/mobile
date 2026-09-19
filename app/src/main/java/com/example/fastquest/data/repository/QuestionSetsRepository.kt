@@ -27,6 +27,7 @@ class QuestionSetsRepository(
     suspend fun getQuestionSets(
         page: Int = 1,
         perPage: Int = 10,
+        orderBy: String = "created_at desc",
         searchTerm: String? = null,
         isPrivate: Boolean? = null,
         includeRelations: Boolean = true
@@ -36,6 +37,7 @@ class QuestionSetsRepository(
             val response = apiService.getQuestionSets(
                 page = page,
                 perPage = perPage,
+                orderBy = orderBy,
                 searchTerm = searchTerm,
                 isPrivate = isPrivate,
                 include = include

@@ -34,6 +34,32 @@ data class QuestionsUiState(
 )
 
 /**
+ * Selected filter values for the questions search (Home screen "Filtros" dialog)
+ */
+data class QuestionFilterSelection(
+    val orderBy: String = "created_at desc",
+    val subjectId: Int? = null,
+    val subjectName: String? = null,
+    val sourceId: Int? = null,
+    val sourceName: String? = null,
+    val year: Int? = null,
+    val topics: List<String> = emptyList()
+) {
+    val isEmpty: Boolean
+        get() = orderBy == "created_at desc" && subjectId == null && sourceId == null &&
+            year == null && topics.isEmpty()
+}
+
+/**
+ * UI State for available filter options fetched from GET /questions/filters
+ */
+data class QuestionFiltersUiState(
+    val filters: QuestionFilters = QuestionFilters(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
+/**
  * UI State for Question screen
  */
 data class QuestionUiState(
