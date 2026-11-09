@@ -22,9 +22,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fastquest.data.local.TokenManager
-import com.example.fastquest.data.network.ApiClient
-import com.example.fastquest.data.repository.SubmissionsRepository
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.fastquest.FastQuestApplication
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
 import com.example.fastquest.viewmodel.ResultsViewModel
@@ -32,25 +31,19 @@ import com.example.fastquest.viewmodel.ResultsViewModelFactory
 
 @Composable
 fun ResultsScreen(
-    userId: String? = null,
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {}
 ) {
-    val submissionsRepository = remember {
-        SubmissionsRepository(
-            ApiClient.submissionsService,
-            ApiClient.answersService
-        )
-    }
+    val container = (LocalContext.current.applicationContext as FastQuestApplication).container
     val viewModel: ResultsViewModel = viewModel(
-        factory = ResultsViewModelFactory(submissionsRepository)
+        factory = container.resultsViewModelFactory
     )
     
-    val performanceState by viewModel.performanceState.collectAsState()
+    val performanceState by viewModel.performanceState.collectAsStateWithLifecycle()
     
     // Load performance data on first composition
-    LaunchedEffect(userId) {
-        viewModel.loadPerformance(userId)
+    LaunchedEffect(Unit) {
+        viewModel.loadPerformance()
     }
     
     val titleText = "SEUS RESULTADOS"
@@ -82,7 +75,7 @@ fun ResultsScreen(
                         fontSize = 14.sp,
                         textAlign = TextAlign.Center
                     )
-                    Button(onClick = { viewModel.loadPerformance(userId) }) {
+                    Button(onClick = { viewModel.loadPerformance() }) {
                         Text("Tentar novamente")
                     }
                 }

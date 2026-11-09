@@ -67,8 +67,15 @@ data class QuestionUiState(
     val options: List<QuestionOption> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    val submissionError: String? = null,
     val isSubmitting: Boolean = false,
     val answerSubmitted: Boolean = false
+)
+
+data class FolderDetailsUiState(
+    val questionSet: QuestionSet? = null,
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
 
 /**

@@ -24,10 +24,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fastquest.data.local.TokenManager
-import com.example.fastquest.data.network.ApiClient
-import com.example.fastquest.data.repository.QuestionSetsRepository
-import com.example.fastquest.data.repository.QuestionsRepository
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.fastquest.FastQuestApplication
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
 import com.example.fastquest.viewmodel.HomeViewModel
@@ -58,21 +56,16 @@ fun HomeScreen(
     onQuestionClick: (String) -> Unit = {},
     onCreateClick: () -> Unit = {}
 ) {
-    val questionSetsRepository = remember {
-        QuestionSetsRepository(ApiClient.questionSetsService)
-    }
-    val questionsRepository = remember {
-        QuestionsRepository(ApiClient.questionsService)
-    }
+    val container = (LocalContext.current.applicationContext as FastQuestApplication).container
     val viewModel: HomeViewModel = viewModel(
-        factory = HomeViewModelFactory(questionSetsRepository, questionsRepository)
+        factory = container.homeViewModelFactory
     )
     
-    val questionSetsState by viewModel.questionSetsState.collectAsState()
-    val questionsState by viewModel.questionsState.collectAsState()
-    val questionFiltersState by viewModel.questionFiltersState.collectAsState()
-    val selectedFilters by viewModel.selectedFilters.collectAsState()
-    val questionSetsOrderBy by viewModel.questionSetsOrderBy.collectAsState()
+    val questionSetsState by viewModel.questionSetsState.collectAsStateWithLifecycle()
+    val questionsState by viewModel.questionsState.collectAsStateWithLifecycle()
+    val questionFiltersState by viewModel.questionFiltersState.collectAsStateWithLifecycle()
+    val selectedFilters by viewModel.selectedFilters.collectAsStateWithLifecycle()
+    val questionSetsOrderBy by viewModel.questionSetsOrderBy.collectAsStateWithLifecycle()
 
     var searchText by remember { mutableStateOf("") }
     var isSearchingFolders by remember { mutableStateOf(showFolders) }

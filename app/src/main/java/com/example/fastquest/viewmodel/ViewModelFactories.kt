@@ -42,12 +42,25 @@ class HomeViewModelFactory(
  * Factory for QuestionViewModel
  */
 class QuestionViewModelFactory(
-    private val questionsRepository: QuestionsRepository
+    private val questionsRepository: QuestionsRepository,
+    private val submissionsRepository: SubmissionsRepository
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(QuestionViewModel::class.java)) {
-            return QuestionViewModel(questionsRepository) as T
+            return QuestionViewModel(questionsRepository, submissionsRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class FolderDetailsViewModelFactory(
+    private val questionSetsRepository: QuestionSetsRepository
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(FolderDetailsViewModel::class.java)) {
+            return FolderDetailsViewModel(questionSetsRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

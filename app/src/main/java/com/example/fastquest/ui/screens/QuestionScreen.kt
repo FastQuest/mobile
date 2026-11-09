@@ -27,9 +27,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fastquest.data.local.TokenManager
-import com.example.fastquest.data.network.ApiClient
-import com.example.fastquest.data.repository.QuestionsRepository
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.fastquest.FastQuestApplication
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
 import com.example.fastquest.viewmodel.QuestionViewModel
@@ -44,22 +43,21 @@ data class QuestionOption(
 @Composable
 fun QuestionScreen(
     questionId: String,
+    questionSetId: Int? = null,
     onBackClick: () -> Unit = {},
     onInfoClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     onAnswerSubmitted: () -> Unit = {}
 ) {
-    val questionsRepository = remember {
-        QuestionsRepository(ApiClient.questionsService)
-    }
+    val container = (LocalContext.current.applicationContext as FastQuestApplication).container
     val viewModel: QuestionViewModel = viewModel(
-        factory = QuestionViewModelFactory(questionsRepository)
+        factory = container.questionViewModelFactory
     )
     
-    val questionState by viewModel.questionState.collectAsState()
-    val selectedOptionId by viewModel.selectedOptionId.collectAsState()
-    val timerSeconds by viewModel.timerSeconds.collectAsState()
-    val isTimerRunning by viewModel.isTimerRunning.collectAsState()
+    val questionState by viewModel.questionState.collectAsStateWithLifecycle()
+    val selectedOptionId by viewModel.selectedOptionId.collectAsStateWithLifecycle()
+    val timerSeconds by viewModel.timerSeconds.collectAsStateWithLifecycle()
+    val isTimerRunning by viewModel.isTimerRunning.collectAsStateWithLifecycle()
     
     // Load question on first composition
     LaunchedEffect(questionId) {
@@ -267,6 +265,10 @@ fun QuestionScreen(
                                 lineHeight = 20.sp,
                                 modifier = Modifier.padding(16.dp)
                             )
+
+                            questionState.submissionError?.let { message ->
+                                Text(text = message, color = MaterialTheme.colorScheme.error)
+                            }
                         }
 
                         // Options
@@ -284,7 +286,7 @@ fun QuestionScreen(
 
                 // Confirm button
                 Button(
-                    onClick = { viewModel.submitAnswer() },
+                    onClick = { viewModel.submitAnswer(questionSetId) },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(16.dp)

@@ -54,7 +54,7 @@ class HomeViewModel(
     /**
      * Load question sets with pagination
      */
-    fun loadQuestionSets(page: Int = 1, searchTerm: String? = null, refresh: Boolean = false) {
+    fun loadQuestionSets(page: Int = 1, searchTerm: String? = null) {
         viewModelScope.launch {
             _questionSetsState.value = _questionSetsState.value.copy(isLoading = true, error = null)
 
@@ -92,7 +92,7 @@ class HomeViewModel(
     /**
      * Load questions with pagination, applying the current search term and selected filters
      */
-    fun loadQuestions(page: Int = 1, refresh: Boolean = false) {
+    fun loadQuestions(page: Int = 1) {
         viewModelScope.launch {
             _questionsState.value = _questionsState.value.copy(isLoading = true, error = null)
 
@@ -164,7 +164,7 @@ class HomeViewModel(
      */
     fun applyFilters(selection: QuestionFilterSelection) {
         _selectedFilters.value = selection
-        loadQuestions(page = 1, refresh = true)
+        loadQuestions(page = 1)
     }
 
     /**
@@ -172,7 +172,7 @@ class HomeViewModel(
      */
     fun resetFilters() {
         _selectedFilters.value = QuestionFilterSelection()
-        loadQuestions(page = 1, refresh = true)
+        loadQuestions(page = 1)
     }
 
     /**
@@ -180,7 +180,7 @@ class HomeViewModel(
      */
     fun applyQuestionSetsOrderBy(orderBy: String) {
         _questionSetsOrderBy.value = orderBy
-        loadQuestionSets(page = 1, searchTerm = _searchTerm.value, refresh = true)
+        loadQuestionSets(page = 1, searchTerm = _searchTerm.value)
     }
 
     /**
@@ -188,7 +188,7 @@ class HomeViewModel(
      */
     fun searchQuestions(term: String) {
         _questionsSearchTerm.value = term
-        loadQuestions(page = 1, refresh = true)
+        loadQuestions(page = 1)
     }
 
     /**
@@ -196,7 +196,7 @@ class HomeViewModel(
      */
     fun searchQuestionSets(term: String) {
         _searchTerm.value = term
-        loadQuestionSets(page = 1, searchTerm = term, refresh = true)
+        loadQuestionSets(page = 1, searchTerm = term)
     }
 
     /**
@@ -205,10 +205,10 @@ class HomeViewModel(
     fun clearSearch(isSearchingFolders: Boolean = true) {
         if (isSearchingFolders) {
             _searchTerm.value = null
-            loadQuestionSets(page = 1, searchTerm = null, refresh = true)
+            loadQuestionSets(page = 1, searchTerm = null)
         } else {
             _questionsSearchTerm.value = null
-            loadQuestions(page = 1, refresh = true)
+            loadQuestions(page = 1)
         }
     }
     
@@ -279,11 +279,10 @@ class HomeViewModel(
         if (isSearchingFolders) {
             loadQuestionSets(
                 page = _questionSetsState.value.currentPage,
-                searchTerm = _searchTerm.value,
-                refresh = true
+                searchTerm = _searchTerm.value
             )
         } else {
-            loadQuestions(page = _questionsState.value.currentPage, refresh = true)
+            loadQuestions(page = _questionsState.value.currentPage)
         }
     }
 }

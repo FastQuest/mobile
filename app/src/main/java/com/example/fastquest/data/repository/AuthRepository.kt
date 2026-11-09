@@ -8,6 +8,7 @@ import com.example.fastquest.data.model.response.User
 import com.example.fastquest.data.network.NetworkResult
 import com.example.fastquest.data.network.service.AuthApiService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -46,6 +47,8 @@ class AuthRepository(
             )
         } catch (e: IOException) {
             NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             NetworkResult.Error("An unexpected error occurred: ${e.message}")
         }
@@ -80,6 +83,8 @@ class AuthRepository(
             )
         } catch (e: IOException) {
             NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             NetworkResult.Error("An unexpected error occurred: ${e.message}")
         }
@@ -104,6 +109,8 @@ class AuthRepository(
             )
         } catch (e: IOException) {
             NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             NetworkResult.Error("An unexpected error occurred: ${e.message}")
         }

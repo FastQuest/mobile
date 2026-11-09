@@ -13,9 +13,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.fastquest.data.local.TokenManager
-import com.example.fastquest.data.network.ApiClient
-import com.example.fastquest.data.repository.AuthRepository
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.fastquest.FastQuestApplication
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
 import com.example.fastquest.viewmodel.AuthViewModel
@@ -26,14 +25,12 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit = {},
     onRegisterSuccess: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val tokenManager = remember { TokenManager(context) }
-    val authRepository = remember { AuthRepository(ApiClient.authService, tokenManager) }
+    val container = (LocalContext.current.applicationContext as FastQuestApplication).container
     val viewModel: AuthViewModel = viewModel(
-        factory = AuthViewModelFactory(authRepository)
+        factory = container.authViewModelFactory
     )
     
-    val authState by viewModel.authState.collectAsState()
+    val authState by viewModel.authState.collectAsStateWithLifecycle()
     
     // Navigate on successful registration
     LaunchedEffect(authState.isAuthenticated) {

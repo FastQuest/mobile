@@ -26,7 +26,7 @@ class AppNavigationTest {
         assertEquals("register", registerRoute)
         assertEquals("home", homeRoute)
         assertEquals("create", createRoute)
-        assertEquals("question/{questionId}", questionRoute)
+        assertEquals("question/{questionId}?questionSetId={questionSetId}", questionRoute)
         assertEquals("folder/{folderId}", folderDetailsRoute)
         assertEquals("results", resultsRoute)
     }
@@ -42,6 +42,11 @@ class AppNavigationTest {
         // Assert
         assertEquals("question/12345", route)
         assertTrue(route.contains(questionId))
+    }
+
+    @Test
+    fun `question route should carry question set context when provided`() {
+        assertEquals("question/123?questionSetId=9", Screen.Question.createRoute("123", 9))
     }
 
     @Test

@@ -2,8 +2,10 @@ package com.example.fastquest.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fastquest.data.model.response.Answer
 import com.example.fastquest.data.network.NetworkResult
 import com.example.fastquest.data.repository.QuestionsRepository
+import com.example.fastquest.data.repository.SubmissionsRepository
 import com.example.fastquest.ui.state.QuestionUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,8 @@ import kotlinx.coroutines.launch
  * Manages individual question display and answer submission
  */
 class QuestionViewModel(
-    private val questionsRepository: QuestionsRepository
+    private val questionsRepository: QuestionsRepository,
+    private val submissionsRepository: SubmissionsRepository
 ) : ViewModel() {
     
     // Question UI state
@@ -38,7 +41,8 @@ class QuestionViewModel(
      */
     fun loadQuestion(questionId: String) {
         viewModelScope.launch {
-            _questionState.value = _questionState.value.copy(isLoading = true, error = null)
+            _questionState.value = QuestionUiState(isLoading = true)
+            _selectedOptionId.value = null
             
             // Convert String ID to Int for API call
             val id = questionId.toIntOrNull() ?: run {
@@ -91,26 +95,49 @@ class QuestionViewModel(
      */
     fun selectOption(optionId: String) {
         _selectedOptionId.value = optionId
+        _questionState.value = _questionState.value.copy(submissionError = null)
     }
     
     /**
      * Submit answer
      */
-    fun submitAnswer() {
-        if (_selectedOptionId.value != null) {
+    fun submitAnswer(questionSetId: Int?) {
+        val question = _questionState.value.question ?: return
+        val selectedOptionId = _selectedOptionId.value?.toIntOrNull() ?: return
+
+        if (questionSetId == null) {
+            _questionState.value = _questionState.value.copy(
+                submissionError = "Para registrar a resposta, abra a questão por uma lista."
+            )
+            return
+        }
+
+        viewModelScope.launch {
             _questionState.value = _questionState.value.copy(
                 isSubmitting = true,
-                answerSubmitted = false
+                answerSubmitted = false,
+                submissionError = null
             )
-            
-            // Simulate submission (in real app, would call repository)
-            viewModelScope.launch {
-                // Here you would call repository to submit answer
-                // For now, just mark as submitted
-                _questionState.value = _questionState.value.copy(
-                    isSubmitting = false,
-                    answerSubmitted = true
-                )
+
+            when (val result = submissionsRepository.createSubmission(
+                questionSetId = questionSetId,
+                answers = listOf(Answer(questionId = question.id, selectedOptionId = selectedOptionId))
+            )) {
+                is NetworkResult.Success -> {
+                    _questionState.value = _questionState.value.copy(
+                        isSubmitting = false,
+                        answerSubmitted = true
+                    )
+                }
+                is NetworkResult.Error -> {
+                    _questionState.value = _questionState.value.copy(
+                        isSubmitting = false,
+                        submissionError = result.message
+                    )
+                }
+                is NetworkResult.Loading -> {
+                    _questionState.value = _questionState.value.copy(isSubmitting = true)
+                }
             }
         }
     }

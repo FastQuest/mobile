@@ -25,7 +25,7 @@ class ResultsViewModel(
     /**
      * Load performance metrics
      */
-    fun loadPerformance(userId: String? = null) {
+    fun loadPerformance() {
         viewModelScope.launch {
             _performanceState.value = _performanceState.value.copy(isLoading = true, error = null)
             

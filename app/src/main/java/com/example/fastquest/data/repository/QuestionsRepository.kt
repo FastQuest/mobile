@@ -6,6 +6,7 @@ import com.example.fastquest.data.model.response.QuestionFilters
 import com.example.fastquest.data.model.response.QuestionOption
 import com.example.fastquest.data.network.NetworkResult
 import com.example.fastquest.data.network.service.QuestionsApiService
+import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -59,6 +60,8 @@ class QuestionsRepository(
             )
         } catch (e: IOException) {
             NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             NetworkResult.Error("An unexpected error occurred: ${e.message}")
         }
@@ -84,6 +87,8 @@ class QuestionsRepository(
             )
         } catch (e: IOException) {
             NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             NetworkResult.Error("An unexpected error occurred: ${e.message}")
         }
@@ -109,6 +114,8 @@ class QuestionsRepository(
             )
         } catch (e: IOException) {
             NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             NetworkResult.Error("An unexpected error occurred: ${e.message}")
         }
@@ -132,6 +139,8 @@ class QuestionsRepository(
             )
         } catch (e: IOException) {
             NetworkResult.Error("Network error. Please check your connection.")
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             NetworkResult.Error("An unexpected error occurred: ${e.message}")
         }

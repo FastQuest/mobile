@@ -14,8 +14,11 @@ sealed class Screen(val route: String) {
     data object Register : Screen("register")
     data object Home : Screen("home")
     data object Create : Screen("create")
-    data object Question : Screen("question/{questionId}") {
-        fun createRoute(questionId: String) = "question/$questionId"
+    data object Question : Screen("question/{questionId}?questionSetId={questionSetId}") {
+        fun createRoute(questionId: String, questionSetId: Int? = null): String {
+            return if (questionSetId == null) "question/$questionId"
+            else "question/$questionId?questionSetId=$questionSetId"
+        }
     }
     data object FolderDetails : Screen("folder/{folderId}") {
         fun createRoute(folderId: String) = "folder/$folderId"
@@ -97,12 +100,19 @@ fun AppNavigation(
         composable(
             route = Screen.Question.route,
             arguments = listOf(
-                navArgument("questionId") { type = NavType.StringType }
+                navArgument("questionId") { type = NavType.StringType },
+                navArgument("questionSetId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
             )
         ) { backStackEntry ->
             val questionId = backStackEntry.arguments?.getString("questionId") ?: ""
+            val questionSetId = backStackEntry.arguments?.getString("questionSetId")?.toIntOrNull()
             QuestionScreen(
                 questionId = questionId,
+                questionSetId = questionSetId,
                 onBackClick = {
                     navController.popBackStack()
                 },
@@ -129,21 +139,21 @@ fun AppNavigation(
         ) { backStackEntry ->
             val folderId = backStackEntry.arguments?.getString("folderId") ?: ""
             FolderDetailsScreen(
+                folderId = folderId,
                 onBackClick = {
                     navController.popBackStack()
                 },
                 onMenuClick = {
                     // Handle menu click
                 },
-                onViewQuestionsClick = {
-                    // Navigate to questions list in folder
+                onViewQuestionsClick = { questionId ->
+                    navController.navigate(Screen.Question.createRoute(questionId, folderId.toIntOrNull()))
                 },
                 onViewResultsClick = {
                     navController.navigate(Screen.Results.route)
                 },
-                onRespondClick = {
-                    // Start answering questions in folder
-                    navController.navigate(Screen.Question.createRoute("1"))
+                onRespondClick = { questionId ->
+                    navController.navigate(Screen.Question.createRoute(questionId, folderId.toIntOrNull()))
                 }
             )
         }

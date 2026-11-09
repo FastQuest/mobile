@@ -3,6 +3,15 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Set with -PFASTQUEST_API_BASE_URL=https://your-api-host/ for production builds.
+val releaseApiBaseUrl = providers.gradleProperty("FASTQUEST_API_BASE_URL")
+    .orElse("https://localhost/")
+    .get()
+
+require(releaseApiBaseUrl.startsWith("https://") && releaseApiBaseUrl.endsWith("/")) {
+    "FASTQUEST_API_BASE_URL must be an HTTPS URL ending in '/'."
+}
+
 android {
     namespace = "com.example.fastquest"
     compileSdk {
@@ -20,12 +29,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // API Base URL for Android Emulator (10.0.2.2 maps to host's localhost)
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
         release {
+            buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

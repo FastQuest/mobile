@@ -12,23 +12,12 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
 
-/**
- * Singleton object that provides configured Retrofit API services
- */
-object ApiClient {
-    
-    private lateinit var tokenManager: TokenManager
-    private lateinit var retrofit: Retrofit
-    
-    /**
-     * Initialize the API client with application context
-     * Must be called before accessing any services
-     */
-    fun initialize(context: Context) {
-        tokenManager = TokenManager(context.applicationContext)
-        retrofit = createRetrofit()
-    }
-    
+/** Provides configured Retrofit API services for the application container. */
+class ApiClient(context: Context) {
+    val tokenManager = TokenManager(context.applicationContext)
+
+    private val retrofit = createRetrofit()
+
     /**
      * Create and configure Retrofit instance
      */
@@ -36,10 +25,11 @@ object ApiClient {
         // Logging interceptor for debugging
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
+                HttpLoggingInterceptor.Level.BASIC
             } else {
                 HttpLoggingInterceptor.Level.NONE
             }
+            redactHeader("Authorization")
         }
         
         // OkHttp client with interceptors
@@ -67,59 +57,9 @@ object ApiClient {
     /**
      * Get TokenManager instance
      */
-    fun getTokenManager(): TokenManager {
-        checkInitialized()
-        return tokenManager
-    }
-    
-    /**
-     * Authentication API service
-     */
-    val authService: AuthApiService by lazy {
-        checkInitialized()
-        retrofit.create(AuthApiService::class.java)
-    }
-    
-    /**
-     * Question Sets API service
-     */
-    val questionSetsService: QuestionSetsApiService by lazy {
-        checkInitialized()
-        retrofit.create(QuestionSetsApiService::class.java)
-    }
-    
-    /**
-     * Questions API service
-     */
-    val questionsService: QuestionsApiService by lazy {
-        checkInitialized()
-        retrofit.create(QuestionsApiService::class.java)
-    }
-    
-    /**
-     * Submissions API service
-     */
-    val submissionsService: SubmissionsApiService by lazy {
-        checkInitialized()
-        retrofit.create(SubmissionsApiService::class.java)
-    }
-    
-    /**
-     * Answers/Performance API service
-     */
-    val answersService: AnswersApiService by lazy {
-        checkInitialized()
-        retrofit.create(AnswersApiService::class.java)
-    }
-    
-    /**
-     * Check if ApiClient has been initialized
-     */
-    private fun checkInitialized() {
-        if (!::tokenManager.isInitialized || !::retrofit.isInitialized) {
-            throw IllegalStateException(
-                "ApiClient must be initialized with initialize(context) before use"
-            )
-        }
-    }
+    val authService: AuthApiService = retrofit.create(AuthApiService::class.java)
+    val questionSetsService: QuestionSetsApiService = retrofit.create(QuestionSetsApiService::class.java)
+    val questionsService: QuestionsApiService = retrofit.create(QuestionsApiService::class.java)
+    val submissionsService: SubmissionsApiService = retrofit.create(SubmissionsApiService::class.java)
+    val answersService: AnswersApiService = retrofit.create(AnswersApiService::class.java)
 }
