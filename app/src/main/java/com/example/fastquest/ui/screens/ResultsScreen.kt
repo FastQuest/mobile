@@ -27,7 +27,6 @@ import com.example.fastquest.FastQuestApplication
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
 import com.example.fastquest.viewmodel.ResultsViewModel
-import com.example.fastquest.viewmodel.ResultsViewModelFactory
 
 @Composable
 fun ResultsScreen(

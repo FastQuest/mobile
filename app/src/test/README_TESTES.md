@@ -127,6 +127,8 @@ app/build/reports/tests/testDebugUnitTest/index.html
 app/src/test/java/com/example/fastquest/
 ├── navigation/
 │   └── AppNavigationTest.kt          (14 testes)
+├── viewmodel/
+│   └── QuestionViewModelTest.kt
 ├── ui/
 │   ├── components/
 │   │   └── CommonComponentsTest.kt   (15 testes)

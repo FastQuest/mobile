@@ -102,6 +102,7 @@ class QuestionViewModel(
      * Submit answer
      */
     fun submitAnswer(questionSetId: Int?) {
+        if (_questionState.value.isSubmitting || _questionState.value.answerSubmitted) return
         val question = _questionState.value.question ?: return
         val selectedOptionId = _selectedOptionId.value?.toIntOrNull() ?: return
 

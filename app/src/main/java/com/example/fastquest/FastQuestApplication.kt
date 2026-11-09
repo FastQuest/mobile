@@ -16,7 +16,9 @@ class FastQuestApplication : Application() {
         super.onCreate()
         applicationScope.launch {
             container.tokenManager.migrateLegacyTokens()
-            container.tokenManager.getAccessToken().collect(container.tokenManager::cacheAccessToken)
+            container.tokenManager.getAccessToken().collect { token ->
+                container.tokenManager.cacheAccessToken(token)
+            }
         }
     }
 }

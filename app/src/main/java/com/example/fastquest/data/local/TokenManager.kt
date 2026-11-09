@@ -11,7 +11,6 @@ import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
-import java.util.concurrent.atomic.AtomicReference
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -25,18 +24,18 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_prefs")
 
 /**
- * Manages authentication tokens using DataStore for secure storage
+ * Stores authentication tokens in DataStore encrypted with an Android Keystore key.
  */
 class TokenManager(private val context: Context) {
 
     @Volatile
-    private var accessTokenCache = AtomicReference<String?>(null)
+    private var accessTokenCache: String? = null
 
     val cachedAccessToken: String?
-        get() = accessTokenCache.get()
+        get() = accessTokenCache
 
     fun cacheAccessToken(token: String?) {
-        accessTokenCache.set(token)
+        accessTokenCache = token
     }
     
     companion object {
@@ -96,7 +95,7 @@ class TokenManager(private val context: Context) {
      */
     fun getAccessToken(): Flow<String?> {
         return context.dataStore.data.map { preferences ->
-            preferences[ACCESS_TOKEN_KEY]?.let(::decrypt)
+            preferences[ACCESS_TOKEN_KEY]?.let(::decrypt).also(::cacheAccessToken)
         }
     }
     
@@ -122,9 +121,7 @@ class TokenManager(private val context: Context) {
      * Check if user is logged in (has access token)
      */
     fun isLoggedIn(): Flow<Boolean> {
-        return context.dataStore.data.map { preferences ->
-            preferences[ACCESS_TOKEN_KEY]?.let(::decrypt) != null
-        }
+        return getAccessToken().map { it != null }
     }
     
     /**

@@ -29,7 +29,6 @@ import com.example.fastquest.FastQuestApplication
 import com.example.fastquest.ui.components.*
 import com.example.fastquest.ui.theme.*
 import com.example.fastquest.viewmodel.HomeViewModel
-import com.example.fastquest.viewmodel.HomeViewModelFactory
 import kotlinx.coroutines.delay
 
 data class FolderItem(

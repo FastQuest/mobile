@@ -40,8 +40,8 @@ fun FolderDetailsScreen(
     discipline: String = "Penal",
     questionCount: Int = 80,
     description: String = "",
-    score: Int = 45,
-    totalScore: Int = 80,
+    score: Int? = null,
+    totalScore: Int? = null,
     onBackClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
     onViewQuestionsClick: (String) -> Unit = {},
@@ -50,53 +50,58 @@ fun FolderDetailsScreen(
 ) {
     val defaultDescription = "Esta lista reúne uma série de questões fundamentais e aprofundadas sobre o Direito Criminal, abrangendo desde os conceitos básicos até os temas mais complexos da legislação penal brasileira. As perguntas foram elaboradas com o objetivo de proporcionar uma compreensão sólida e progressiva da matéria, atendendo tanto aos estudantes em fase inicial quanto àqueles que já possuem certo domínio do conteúdo jurídico.\n\nOs tópicos abordados incluem os princípios do Direito Penal, a classificação e os elementos dos crimes, as causas de exclusão de ilicitude e culpabilidade."
 
-        val folderViewModel = if (folderId == null) {
-            null
-        } else {
-            val container = (LocalContext.current.applicationContext as FastQuestApplication).container
-            viewModel<FolderDetailsViewModel>(key = folderId, factory = container.folderDetailsViewModelFactory)
-        }
-        val folderState by if (folderViewModel == null) {
-            remember { mutableStateOf(FolderDetailsUiState()) }
-        } else {
-            folderViewModel.state.collectAsStateWithLifecycle()
-        }
+    val folderViewModel = if (folderId == null) {
+        null
+    } else {
+        val container = (LocalContext.current.applicationContext as FastQuestApplication).container
+        viewModel<FolderDetailsViewModel>(key = folderId, factory = container.folderDetailsViewModelFactory)
+    }
+    val folderState by if (folderViewModel == null) {
+        remember { mutableStateOf(FolderDetailsUiState()) }
+    } else {
+        folderViewModel.state.collectAsStateWithLifecycle()
+    }
 
-        LaunchedEffect(folderId) {
-            if (folderId != null) folderViewModel?.loadFolder(folderId)
-        }
+    LaunchedEffect(folderId) {
+        if (folderId != null) folderViewModel?.loadFolder(folderId)
+    }
 
-        if (folderId != null && folderState.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-            return
+    if (folderId != null && (
+            folderState.isLoading ||
+                (folderState.questionSet == null && folderState.error == null)
+            )
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
         }
+        return
+    }
 
-        if (folderId != null && folderState.questionSet == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(folderState.error ?: "Lista não encontrada")
-                    Button(onClick = { folderViewModel?.loadFolder(folderId) }) {
-                        Text("Tentar novamente")
-                    }
+    if (folderId != null && folderState.questionSet == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(folderState.error ?: "Lista não encontrada")
+                Button(onClick = { folderViewModel?.loadFolder(folderId) }) {
+                    Text("Tentar novamente")
                 }
             }
-            return
         }
+        return
+    }
 
-        val questionSet: QuestionSet? = folderState.questionSet
-        val firstQuestion = questionSet?.questions?.firstOrNull()
-        val displayTitle = questionSet?.name ?: folderTitle
-        val displayCreator = questionSet?.user?.name ?: if (questionSet == null) creator else "Não informado"
-        val displaySource = firstQuestion?.source?.name ?: if (questionSet == null) source else "Não informado"
-        val displayDate = firstQuestion?.source?.year?.toString()
-            ?: questionSet?.createdAt?.take(4)
-            ?: date
-        val displayDiscipline = firstQuestion?.subject?.name
-            ?: if (questionSet == null) discipline else "Não informada"
-        val displayQuestionCount = questionSet?.questions?.size ?: questionCount
-        val displayDescription = questionSet?.description ?: description
+    val questionSet: QuestionSet? = folderState.questionSet
+    val firstQuestion = questionSet?.questions?.firstOrNull()
+    val displayTitle = questionSet?.name ?: folderTitle
+    val displayCreator = questionSet?.user?.name ?: if (questionSet == null) creator else "Não informado"
+    val displaySource = firstQuestion?.source?.name ?: if (questionSet == null) source else "Não informado"
+    val displayDate = firstQuestion?.source?.year?.toString()
+        ?: questionSet?.createdAt?.take(4)
+        ?: date
+    val displayDiscipline = firstQuestion?.subject?.name
+        ?: if (questionSet == null) discipline else "Não informada"
+    val displayQuestionCount = if (questionSet == null) questionCount else questionSet.questions?.size ?: 0
+    val displayDescription = questionSet?.description ?: description
+    val hasScore = score != null && totalScore != null
 
     Box(
         modifier = Modifier
@@ -221,21 +226,25 @@ fun FolderDetailsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "Você acertou:",
+                            text = if (hasScore) "Você acertou:" else "Seu desempenho",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextDark
                         )
 
                         Text(
-                            text = "$score/$totalScore",
+                            text = if (hasScore) "$score/$totalScore" else "Sem tentativas",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextDark
                         )
 
                         Text(
-                            text = "Aqui vai aparecer um resumo do seu desempenho e onde você poderá explorar os detalhes de cada questão para entender melhor seus acertos e pontos a melhorar.",
+                            text = if (hasScore) {
+                                "Veja seus resultados detalhados para identificar acertos e pontos de melhoria."
+                            } else {
+                                "Responda à lista para acompanhar seu desempenho aqui."
+                            },
                             fontSize = 13.sp,
                             color = Color.Gray,
                             lineHeight = 18.sp
